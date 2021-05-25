@@ -13,3 +13,5 @@ metals.sbt
 target
 
 .DS_Store
+
+**/*/application.conf
