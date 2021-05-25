@@ -1,9 +1,9 @@
 package com.evolutiongaming.bootcamp.courses
 
 import cats.data.EitherT
-import cats.effect.Sync
+import cats.effect.{Clock, Sync}
 import cats.syntax.all._
-import com.evolutiongaming.bootcamp.applications.ApplicationService
+import com.evolutiongaming.bootcamp.applications.{Application, ApplicationService}
 import com.evolutiongaming.bootcamp.auth.Auth
 import com.evolutiongaming.bootcamp.courses.dto.CreateCourseDto
 import com.evolutiongaming.bootcamp.effects.GenUUID
@@ -15,7 +15,7 @@ import org.http4s.{HttpRoutes, QueryParamDecoder}
 import tsec.authentication._
 import tsec.jwt.algorithms.JWTMacAlgo
 
-final class CourseEndpoints[F[_]: Sync, Auth: JWTMacAlgo](
+final class CourseEndpoints[F[_]: Sync: Clock, Auth: JWTMacAlgo](
   courseService:      CourseService[F],
   auth:               AuthHandler[F, Auth],
   srClient:           SRHttpClient[F],
@@ -41,13 +41,21 @@ final class CourseEndpoints[F[_]: Sync, Auth: JWTMacAlgo](
   }
 
   private def applyCourseEndpoint: AuthEndpoint[F, Auth] = {
-    case req @ POST -> Root / UUIDVar(id) / "apply" asAuthed _ =>
+    case req @ POST -> Root / UUIDVar(id) / "apply" asAuthed user =>
       val action = for {
-        application <- req.request.as[String]
-        course      <- courseService.get(id).value
-        _           <- course.traverseTap(course => srClient.createPostingCandidate(course.srId, application))
-        _           <- "TODO".pure[F] // create application via service
-      } yield course
+        data   <- req.request.as[String]
+        course <- courseService.get(id).value
+        application <- course.traverse(course =>
+          for {
+            applyResponse <- srClient.createPostingCandidate(course.srId, data)
+            id            <- GenUUID[F].random
+            time          <- Clock[F].instantNow
+            application <- applicationService.placeApplication(
+              Application(id, user.id, course.id, applyResponse.id, None, time)
+            )
+          } yield application
+        )
+      } yield application
 
       EitherT(action).foldF(
         _ => BadRequest(s"The course with id $id was not found"),
@@ -56,7 +64,7 @@ final class CourseEndpoints[F[_]: Sync, Auth: JWTMacAlgo](
   }
 
   private def getCourseConfigurationEndpoint: AuthEndpoint[F, Auth] = {
-    case req @ GET -> Root / UUIDVar(id) / "configuration" asAuthed _ =>
+    case GET -> Root / UUIDVar(id) / "configuration" asAuthed _ =>
       val action = for {
         course <- courseService.get(id).value
         _      <- course.traverseTap(course => srClient.getPostingConfiguration(course.srId))
@@ -121,7 +129,7 @@ final class CourseEndpoints[F[_]: Sync, Auth: JWTMacAlgo](
 }
 
 object CourseEndpoints {
-  def endpoints[F[_]: Sync, Auth: JWTMacAlgo](
+  def endpoints[F[_]: Sync: Clock, Auth: JWTMacAlgo](
     courseService:      CourseService[F],
     auth:               AuthHandler[F, Auth],
     srClient:           SRHttpClient[F],

@@ -24,7 +24,7 @@ import tsec.passwordhashers.jca.BCrypt
 trait BootcampModule[F[_]] extends UserModule[F] with CourseModule[F] with ApplicationModule[F]
 
 object BootcampModule {
-  final private class BootcampModuleImpl[F[_]: Sync](
+  final private class BootcampModuleImpl[F[_]: Sync: Clock](
     xa:       Transactor[F],
     srClient: SRHttpClient[F],
     key:      MacSigningKey[HMACSHA256]
@@ -70,7 +70,7 @@ object BootcampModule {
     ).transact(xa)
   } yield ()
 
-  def of[F[_]: Sync](conf: AppConfig, xa: Transactor[F], httpClient: Client[F]): F[BootcampModule[F]] = for {
+  def of[F[_]: Sync: Clock](conf: AppConfig, xa: Transactor[F], httpClient: Client[F]): F[BootcampModule[F]] = for {
     srClient <- SRHttpClient.of(conf.smartRecruiters, httpClient)
     _        <- bootstrap(xa, conf, srClient)
     key      <- HMACSHA256.generateKey[F]
