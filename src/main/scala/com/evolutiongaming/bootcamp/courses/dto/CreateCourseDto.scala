@@ -7,7 +7,6 @@ import java.util.UUID
 
 @JsonCodec
 final case class CreateCourseDto(
-  id:                 UUID,
   title:              String,
   description:        String,
   taskMessage:        String,
