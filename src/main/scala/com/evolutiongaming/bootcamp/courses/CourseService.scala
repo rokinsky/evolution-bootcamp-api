@@ -26,6 +26,9 @@ final class CourseService[F[_]: Monad](
   def get(id: UUID): EitherT[F, CourseNotFoundError.type, Course] =
     EitherT.fromOptionF(repository.get(id), CourseNotFoundError)
 
+  def getBySR(srId: UUID): EitherT[F, CourseNotFoundError.type, Course] =
+    EitherT.fromOptionF(repository.getBySR(srId), CourseNotFoundError)
+
   def delete(id: UUID): F[Unit] =
     repository.delete(id).as(())
 

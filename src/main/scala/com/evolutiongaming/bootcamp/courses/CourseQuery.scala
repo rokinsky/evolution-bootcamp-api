@@ -42,6 +42,12 @@ object CourseQuery extends TimeMetaInstances with MetaConstructors {
     WHERE id = $id
   """.query
 
+  def selectBySR(srId: UUID): Query0[Course] = sql"""
+    SELECT id, title, description, task_message, sr_id, submission_deadline, status
+    FROM courses
+    WHERE sr_id = $srId
+  """.query
+
   def delete(id: UUID): Update0 = sql"""
     DELETE FROM courses WHERE ID = $id
   """.update

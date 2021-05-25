@@ -10,7 +10,13 @@ import com.evolutiongaming.bootcamp.applications.{
 }
 import com.evolutiongaming.bootcamp.auth.{AuthModule, AuthQuery}
 import com.evolutiongaming.bootcamp.config.app.AppConfig
-import com.evolutiongaming.bootcamp.courses.{CourseModule, CourseQuery}
+import com.evolutiongaming.bootcamp.courses.{
+  CourseDoobieRepository,
+  CourseModule,
+  CourseQuery,
+  CourseService,
+  CourseValidationInterpreter
+}
 import com.evolutiongaming.bootcamp.effects.GenUUID
 import com.evolutiongaming.bootcamp.sr.SRHttpClient
 import com.evolutiongaming.bootcamp.users.{Role, User, UserModule, UserQuery}
@@ -31,6 +37,8 @@ object BootcampModule {
   ) extends BootcampModule[F] {
     private val authModule         = AuthModule.of(xa, key)
     private val applicationService = ApplicationService(ApplicationDoobieRepository(xa))
+    private val courseRepo         = CourseDoobieRepository(xa)
+    private val courseService      = CourseService(courseRepo, CourseValidationInterpreter(courseRepo))
 
     override def userHttpEndpoint: HttpRoutes[F] =
       UserModule.of(xa, authModule.routeAuth).userHttpEndpoint
@@ -39,7 +47,7 @@ object BootcampModule {
       CourseModule.of(xa, authModule.routeAuth, srClient, applicationService).courseHttpEndpoint
 
     override def applicationHttpEndpoint: HttpRoutes[F] =
-      ApplicationModule.of(xa, authModule.routeAuth, srClient).applicationHttpEndpoint
+      ApplicationModule.of(xa, authModule.routeAuth, srClient, courseService).applicationHttpEndpoint
   }
 
   private def bootstrap[F[_]: Sync](

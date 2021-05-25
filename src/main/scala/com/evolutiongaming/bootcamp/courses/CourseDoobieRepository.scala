@@ -25,6 +25,8 @@ final class CourseDoobieRepository[F[_]: Bracket[*[_], Throwable]](val xa: Trans
 
   def get(id: UUID): F[Option[Course]] = select(id).option.transact(xa)
 
+  def getBySR(id: UUID): F[Option[Course]] = selectBySR(id).option.transact(xa)
+
   def delete(id: UUID): F[Option[Course]] =
     OptionT(select(id).option).semiflatMap(course => CourseQuery.delete(id).run.as(course)).value.transact(xa)
 

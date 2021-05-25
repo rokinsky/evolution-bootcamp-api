@@ -6,6 +6,7 @@ import cats.effect.Sync
 import cats.syntax.all._
 import com.evolutiongaming.bootcamp.applications.dto.ApplicationSubmitDto
 import com.evolutiongaming.bootcamp.auth.Auth
+import com.evolutiongaming.bootcamp.courses.CourseService
 import com.evolutiongaming.bootcamp.shared.HttpCommon.{AuthEndpoint, AuthHandler, AuthService}
 import com.evolutiongaming.bootcamp.sr.{SRApplicationStatus, SRApplicationWebhookPayload, SRHttpClient}
 import org.http4s._
@@ -19,6 +20,7 @@ final class ApplicationEndpoints[F[_]: Sync, Auth: JWTMacAlgo](
   applicationService: ApplicationService[F],
   auth:               AuthHandler[F, Auth],
   srClient:           SRHttpClient[F],
+  courseService:      CourseService[F],
 ) extends Http4sDsl[F] {
   private def placeApplicationEndpoint: AuthEndpoint[F, Auth] = { case req @ POST -> Root asAuthed user =>
     for {
@@ -69,9 +71,10 @@ final class ApplicationEndpoints[F[_]: Sync, Auth: JWTMacAlgo](
         applicationPayload.candidateId,
         candidateStatus.status
       )
+      course <- courseService.getBySR(applicationPayload.jobId).value
       _ <- application.traverseTap {
         case Application(_, _, _, _, _, _, _, SRApplicationStatus.IN_REVIEW) =>
-          srClient.sendCandidateEmail(applicationPayload.candidateId, "TODO").void
+          srClient.sendCandidateEmail(applicationPayload.candidateId, "").void
         case _ => Monad[F].unit
       }
       res <- Accepted()
@@ -99,6 +102,7 @@ object ApplicationEndpoints {
     applicationService: ApplicationService[F],
     auth:               AuthHandler[F, Auth],
     srClient:           SRHttpClient[F],
+    courseService:      CourseService[F],
   ): HttpRoutes[F] =
-    new ApplicationEndpoints[F, Auth](applicationService, auth, srClient).endpoints
+    new ApplicationEndpoints[F, Auth](applicationService, auth, srClient, courseService).endpoints
 }
