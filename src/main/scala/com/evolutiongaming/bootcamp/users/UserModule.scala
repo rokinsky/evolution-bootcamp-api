@@ -16,11 +16,7 @@ object UserModule {
     xa:   Transactor[F],
     auth: AuthHandler[F, Auth],
   ): UserModule[F] = new UserModule[F] {
-    override def userHttpEndpoint: HttpRoutes[F] = {
-      val userRepo       = UserDoobieRepository(xa)
-      val userValidation = UserValidationInterpreter(userRepo)
-      val userService    = UserService(userRepo, userValidation)
-      UserHttpEndpoint.endpoints(userService, BCrypt.syncPasswordHasher[F], auth)
-    }
+    override def userHttpEndpoint: HttpRoutes[F] =
+      UserHttpEndpoint.endpoints(UserService(UserDoobieRepository(xa)), BCrypt.syncPasswordHasher[F], auth)
   }
 }

@@ -1,18 +1,14 @@
 package com.evolutiongaming.bootcamp.users
 
-import cats.data.EitherT
 import cats.effect.Sync
 import cats.syntax.all._
 import com.evolutiongaming.bootcamp.auth.{Auth, LoginDto, SignupDto}
 import com.evolutiongaming.bootcamp.effects.GenUUID
 import com.evolutiongaming.bootcamp.shared.HttpCommon._
-import com.evolutiongaming.bootcamp.shared.ValidationError.UserAuthenticationFailedError
 import com.evolutiongaming.bootcamp.users.dto.UpdateUserDto
-import io.circe.syntax._
-import org.http4s.HttpRoutes
 import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
-import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
+import org.http4s.{HttpRoutes, Response}
 import tsec.authentication._
 import tsec.common.Verified
 import tsec.jwt.algorithms.JWTMacAlgo
@@ -25,45 +21,37 @@ final class UserHttpEndpoint[F[_]: Sync, A, Auth: JWTMacAlgo](
 ) extends Http4sDsl[F] {
   private def loginEndpoint: HttpRoutes[F] =
     HttpRoutes.of[F] { case req @ POST -> Root / "login" =>
-      val action = for {
-        login       <- EitherT.liftF(req.as[LoginDto])
-        email        = login.email
-        user        <- userService.getUserByEmail(email).leftMap(_ => UserAuthenticationFailedError(email))
-        checkResult <- EitherT.liftF(cryptService.checkpw(login.password, PasswordHash[A](user.hash)))
-        _           <- EitherT.cond[F](checkResult == Verified, (), UserAuthenticationFailedError(email))
-        token       <- EitherT.right[UserAuthenticationFailedError](auth.authenticator.create(user.id))
-      } yield (user, token)
-
-      action.foldF(
-        e => BadRequest(s"Authentication failed for user with email ${e.email}"),
-        userWithToken => Ok(userWithToken._1.asJson).map(auth.authenticator.embed(_, userWithToken._2))
-      )
+      (for {
+        login <- req.as[LoginDto]
+        email <- login.email.pure[F]
+        user  <- userService.getUserByEmail(email)
+        _ <- cryptService
+          .checkpw(login.password, PasswordHash[A](user.hash))
+          .ensure(UserAuthenticationFailed(email))(_ == Verified)
+        token <- auth.authenticator.create(user.id)
+        res   <- Ok(user).map(auth.authenticator.embed(_, token))
+      } yield res).handleErrorWith(userErrorInterceptor)
     }
 
   private def signupEndpoint: HttpRoutes[F] =
     HttpRoutes.of[F] { case req @ POST -> Root =>
-      val action = for {
-        signup <- req.as[SignupDto]
-        hash   <- cryptService.hashpw(signup.password)
-        id     <- GenUUID[F].random
-        user   <- signup.asUser(id, hash).pure[F]
-        result <- userService.createUser(user).value
-      } yield result
-
-      EitherT(action).foldF(
-        e => Conflict(s"The user with email ${e.user.email} already exists"),
-        user => Ok(user)
-      )
+      (for {
+        signup      <- req.as[SignupDto]
+        hash        <- cryptService.hashpw(signup.password)
+        id          <- GenUUID[F].random
+        user         = signup.asUser(id, hash)
+        createdUser <- userService.createUser(user)
+        res         <- Created(createdUser)
+      } yield res).handleErrorWith(userErrorInterceptor)
     }
 
   private def updateEndpoint(): AuthEndpoint[F, Auth] = { case req @ PUT -> Root / UUIDVar(id) asAuthed _ =>
-    val action = for {
+    (for {
       updateUserDto <- req.request.as[UpdateUserDto]
-      updated       <- User.of(id, updateUserDto).pure[F]
-      result        <- userService.update(updated).value
-    } yield result
-
-    EitherT(action).foldF(_ => NotFound("User not found"), saved => Ok(saved))
+      user           = User.of(id, updateUserDto)
+      updatedUser   <- userService.update(user)
+      res           <- Ok(updatedUser)
+    } yield res).handleErrorWith(userErrorInterceptor)
   }
 
   private def listEndpoint: AuthEndpoint[F, Auth] = {
@@ -75,16 +63,24 @@ final class UserHttpEndpoint[F[_]: Sync, A, Auth: JWTMacAlgo](
   }
 
   private def getUserEndpoint: AuthEndpoint[F, Auth] = { case GET -> Root / UUIDVar(id) asAuthed _ =>
-    userService
-      .getUser(id)
-      .foldF(_ => NotFound("The user was not found"), user => Ok(user))
+    (for {
+      user <- userService.getUser(id)
+      res  <- Ok(user)
+    } yield res).handleErrorWith(userErrorInterceptor)
   }
 
   private def deleteUserEndpoint(): AuthEndpoint[F, Auth] = { case DELETE -> Root / UUIDVar(id) asAuthed _ =>
-    for {
+    (for {
       _   <- userService.deleteUser(id)
       res <- Accepted()
-    } yield res
+    } yield res).handleErrorWith(userErrorInterceptor)
+  }
+
+  private val userErrorInterceptor: PartialFunction[Throwable, F[Response[F]]] = {
+    case UserAuthenticationFailed(email) => BadRequest(s"Authentication failed for user with email ${email}")
+    case UserAlreadyExists(user)         => Conflict(s"The user with email ${user.email} already exists")
+    case UserNotFound                    => NotFound("The user was not found")
+    case ex: Throwable => InternalServerError(ex.getMessage) // TODO: probably we don't need this
   }
 
   def endpoints: HttpRoutes[F] = {

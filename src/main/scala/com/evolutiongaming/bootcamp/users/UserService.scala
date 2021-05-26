@@ -1,44 +1,35 @@
 package com.evolutiongaming.bootcamp.users
 
-import cats.Monad
-import cats.data._
-import cats.syntax.functor._
-import com.evolutiongaming.bootcamp.shared.ValidationError.{UserAlreadyExistsError, UserNotFoundError}
+import cats.MonadError
+import cats.implicits._
 
 import java.util.UUID
 
-final class UserService[F[_]: Monad](userRepo: UserRepositoryAlgebra[F], validation: UserValidationAlgebra[F]) {
-  def createUser(user: User): EitherT[F, UserAlreadyExistsError, User] =
-    for {
-      _     <- validation.doesNotExist(user)
-      saved <- EitherT.liftF(userRepo.create(user))
-    } yield saved
+final class UserService[F[_]: MonadError[*[_], Throwable]](
+  userRepo: UserRepositoryAlgebra[F],
+) {
+  def createUser(user: User): F[User] =
+    userRepo.create(user)
 
-  def getUser(userId: UUID): EitherT[F, UserNotFoundError.type, User] =
-    userRepo.get(userId).toRight(UserNotFoundError)
+  def getUser(userId: UUID): F[User] =
+    userRepo.get(userId).cataF(UserNotFound.raiseError[F, User], _.pure[F])
 
-  def getUserByEmail(
-    email: String,
-  ): EitherT[F, UserNotFoundError.type, User] =
-    userRepo.findByEmail(email).toRight(UserNotFoundError)
+  def getUserByEmail(email: String): F[User] =
+    userRepo.findByEmail(email).cataF(UserNotFound.raiseError[F, User], _.pure[F])
 
   def deleteUser(userId: UUID): F[Unit] =
-    userRepo.delete(userId).value.void
+    userRepo.delete(userId)
 
-  def update(user: User): EitherT[F, UserNotFoundError.type, User] =
-    for {
-      _     <- validation.exists(user.id)
-      saved <- userRepo.update(user).toRight(UserNotFoundError)
-    } yield saved
+  def update(user: User): F[User] =
+    userRepo.update(user)
 
   def list(pageSize: Int, offset: Int): F[List[User]] =
     userRepo.list(pageSize, offset)
 }
 
 object UserService {
-  def apply[F[_]: Monad](
+  def apply[F[_]: MonadError[*[_], Throwable]](
     repository: UserRepositoryAlgebra[F],
-    validation: UserValidationAlgebra[F],
   ): UserService[F] =
-    new UserService[F](repository, validation)
+    new UserService[F](repository)
 }

@@ -7,11 +7,11 @@ import java.util.UUID
 trait UserRepositoryAlgebra[F[_]] {
   def create(user: User): F[User]
 
-  def update(user: User): OptionT[F, User]
+  def update(user: User): F[User]
 
   def get(userId: UUID): OptionT[F, User]
 
-  def delete(userId: UUID): OptionT[F, User]
+  def delete(userId: UUID): F[Unit]
 
   def findByEmail(email: String): OptionT[F, User]
 

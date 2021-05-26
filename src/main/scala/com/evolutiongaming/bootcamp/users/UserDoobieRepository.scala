@@ -18,16 +18,16 @@ final class UserDoobieRepository[F[_]: Sync](xa: Transactor[F])
   def create(user: User): F[User] =
     insert(user).run.as(user).transact(xa)
 
-  def update(user: User): OptionT[F, User] =
-    OptionT(UserQuery.update(user, user.id).run.transact(xa).as(user.some))
+  def update(user: User): F[User] =
+    UserQuery.update(user, user.id).run.transact(xa).as(user)
 
   def get(userId: UUID): OptionT[F, User] = OptionT(select(userId).option.transact(xa))
 
   def findByEmail(email: String): OptionT[F, User] =
     OptionT(byEmail(email).option.transact(xa))
 
-  def delete(userId: UUID): OptionT[F, User] =
-    get(userId).semiflatMap(user => UserQuery.delete(userId).run.transact(xa).as(user))
+  def delete(userId: UUID): F[Unit] =
+    UserQuery.delete(userId).run.transact(xa).void
 
   def list(pageSize: Int, offset: Int): F[List[User]] =
     paginate(pageSize, offset)(selectAll).to[List].transact(xa)
