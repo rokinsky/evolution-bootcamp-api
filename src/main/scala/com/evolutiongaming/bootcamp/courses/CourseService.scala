@@ -1,36 +1,29 @@
 package com.evolutiongaming.bootcamp.courses
 
-import cats.Monad
+import cats.MonadError
 import cats.data._
-import cats.syntax.all._
-import com.evolutiongaming.bootcamp.shared.ValidationError.{CourseAlreadyExistsError, CourseNotFoundError}
+import cats.implicits._
+import com.evolutiongaming.bootcamp.courses.CourseError.CourseNotFound
 
 import java.util.UUID
 
-final class CourseService[F[_]: Monad](
+final class CourseService[F[_]: MonadError[*[_], Throwable]](
   repository: CourseRepositoryAlgebra[F],
-  validation: CourseValidationAlgebra[F],
 ) {
-  def create(course: Course): EitherT[F, CourseAlreadyExistsError, Course] =
-    for {
-      _             <- validation.doesNotExist(course)
-      createdCourse <- EitherT.liftF(repository.create(course))
-    } yield createdCourse
+  def create(course: Course): F[Course] =
+    repository.create(course)
 
-  def update(course: Course): EitherT[F, CourseNotFoundError.type, Course] =
-    for {
-      _             <- validation.exists(course.id)
-      updatedCourse <- EitherT.liftF(repository.update(course))
-    } yield updatedCourse
+  def update(course: Course): F[Course] =
+    repository.update(course)
 
-  def get(id: UUID): EitherT[F, CourseNotFoundError.type, Course] =
-    EitherT.fromOptionF(repository.get(id), CourseNotFoundError)
+  def get(id: UUID): F[Course] =
+    OptionT(repository.get(id)).cataF(CourseNotFound(id).raiseError[F, Course], _.pure[F])
 
-  def getBySR(srId: UUID): EitherT[F, CourseNotFoundError.type, Course] =
-    EitherT.fromOptionF(repository.getBySR(srId), CourseNotFoundError)
+  def getBySR(srId: UUID): F[Course] =
+    OptionT(repository.getBySR(srId)).cataF(CourseNotFound(srId).raiseError[F, Course], _.pure[F])
 
   def delete(id: UUID): F[Unit] =
-    repository.delete(id).as(())
+    repository.delete(id)
 
   def list(pageSize: Int, offset: Int): F[List[Course]] =
     repository.list(pageSize, offset)
@@ -40,9 +33,8 @@ final class CourseService[F[_]: Monad](
 }
 
 object CourseService {
-  def apply[F[_]: Monad](
+  def apply[F[_]: MonadError[*[_], Throwable]](
     repository: CourseRepositoryAlgebra[F],
-    validation: CourseValidationAlgebra[F],
   ): CourseService[F] =
-    new CourseService[F](repository, validation)
+    new CourseService[F](repository)
 }

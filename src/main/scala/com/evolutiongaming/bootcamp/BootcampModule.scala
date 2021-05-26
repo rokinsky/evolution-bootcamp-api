@@ -31,11 +31,9 @@ object BootcampModule {
     srClient: SRHttpClient[F],
     key:      MacSigningKey[HMACSHA256]
   ) extends BootcampModule[F] {
-    private val authModule            = AuthModule.of(xa, key)
-    private val applicationRepository = ApplicationDoobieRepository(xa)
-    private val applicationService    = ApplicationService(applicationRepository)
-    private val courseRepo            = CourseDoobieRepository(xa)
-    private val courseService         = CourseService(courseRepo, CourseValidationInterpreter(courseRepo))
+    private val authModule         = AuthModule.of(xa, key)
+    private val applicationService = ApplicationService(ApplicationDoobieRepository(xa))
+    private val courseService      = CourseService(CourseDoobieRepository(xa))
 
     override def userHttpEndpoint: HttpRoutes[F] =
       UserModule.of(xa, authModule.routeAuth).userHttpEndpoint

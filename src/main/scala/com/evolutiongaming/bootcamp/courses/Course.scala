@@ -1,6 +1,6 @@
 package com.evolutiongaming.bootcamp.courses
 
-import com.evolutiongaming.bootcamp.courses.dto.CreateCourseDto
+import com.evolutiongaming.bootcamp.courses.dto.{CreateCourseDto, UpdateCourseDto}
 import io.circe.generic.JsonCodec
 
 import java.time.Instant
@@ -26,5 +26,15 @@ object Course {
       createCourseDto.taskMessage,
       createCourseDto.srId,
       createCourseDto.submissionDeadline
+    )
+
+  def of(id: UUID, updateCourseDto: UpdateCourseDto): Course =
+    Course(
+      id,
+      updateCourseDto.title,
+      updateCourseDto.description,
+      updateCourseDto.taskMessage,
+      updateCourseDto.srId,
+      updateCourseDto.submissionDeadline
     )
 }

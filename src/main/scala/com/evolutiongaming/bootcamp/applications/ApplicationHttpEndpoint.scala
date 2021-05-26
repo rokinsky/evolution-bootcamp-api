@@ -72,7 +72,7 @@ final class ApplicationHttpEndpoint[F[_]: Sync, Auth: JWTMacAlgo](
         applicationPayload.candidateId,
         candidateStatus.status
       )
-      course <- courseService.getBySR(applicationPayload.jobId).value
+      course <- courseService.getBySR(applicationPayload.jobId)
       _ <- application.traverseTap {
         case Application(_, _, _, _, _, _, _, SRApplicationStatus.IN_REVIEW) =>
           srClient.sendCandidateEmail(applicationPayload.candidateId, "").void

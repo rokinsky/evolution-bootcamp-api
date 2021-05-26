@@ -13,7 +13,7 @@ trait CourseRepositoryAlgebra[F[_]] {
 
   def getBySR(id: UUID): F[Option[Course]]
 
-  def delete(id: UUID): F[Option[Course]]
+  def delete(id: UUID): F[Unit]
 
   def list(pageSize: Int, offset: Int): F[List[Course]]
 
