@@ -15,7 +15,7 @@ import org.http4s.{HttpRoutes, QueryParamDecoder}
 import tsec.authentication._
 import tsec.jwt.algorithms.JWTMacAlgo
 
-final class CourseEndpoints[F[_]: Sync: Clock, Auth: JWTMacAlgo](
+final class CourseHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
   courseService:      CourseService[F],
   auth:               AuthHandler[F, Auth],
   srClient:           SRHttpClient[F],
@@ -128,12 +128,12 @@ final class CourseEndpoints[F[_]: Sync: Clock, Auth: JWTMacAlgo](
   }
 }
 
-object CourseEndpoints {
+object CourseHttpEndpoint {
   def endpoints[F[_]: Sync: Clock, Auth: JWTMacAlgo](
     courseService:      CourseService[F],
     auth:               AuthHandler[F, Auth],
     srClient:           SRHttpClient[F],
     applicationService: ApplicationService[F]
   ): HttpRoutes[F] =
-    new CourseEndpoints[F, Auth](courseService, auth, srClient, applicationService).endpoints
+    new CourseHttpEndpoint[F, Auth](courseService, auth, srClient, applicationService).endpoints
 }

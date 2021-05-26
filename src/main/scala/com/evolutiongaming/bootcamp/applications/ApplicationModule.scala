@@ -19,7 +19,7 @@ object ApplicationModule {
     srClient:           SRHttpClient[F],
   ): ApplicationModule[F] = new ApplicationModule[F] {
     override def applicationHttpEndpoint: HttpRoutes[F] = {
-      ApplicationEndpoints.endpoints(applicationService, auth, srClient, courseService)
+      ApplicationHttpEndpoint.endpoints(applicationService, auth, srClient, courseService)
     }
   }
 }

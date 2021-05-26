@@ -3,4 +3,4 @@ package com.evolutiongaming.bootcamp.sr.dto
 import io.circe.generic.JsonCodec
 
 @JsonCodec
-case class SRCallbackAuthentication()
+final case class SRCallbackAuthentication()

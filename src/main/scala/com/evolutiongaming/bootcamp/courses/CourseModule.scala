@@ -19,7 +19,7 @@ object CourseModule {
     srClient:           SRHttpClient[F],
   ): CourseModule[F] = new CourseModule[F] {
     override def courseHttpEndpoint: HttpRoutes[F] = {
-      CourseEndpoints.endpoints(
+      CourseHttpEndpoint.endpoints(
         courseService,
         auth,
         srClient,

@@ -17,7 +17,7 @@ import org.http4s.util.CaseInsensitiveString
 import tsec.authentication.asAuthed
 import tsec.jwt.algorithms.JWTMacAlgo
 
-final class ApplicationEndpoints[F[_]: Sync, Auth: JWTMacAlgo](
+final class ApplicationHttpEndpoint[F[_]: Sync, Auth: JWTMacAlgo](
   applicationService: ApplicationService[F],
   auth:               AuthHandler[F, Auth],
   srClient:           SRHttpClient[F],
@@ -98,12 +98,12 @@ final class ApplicationEndpoints[F[_]: Sync, Auth: JWTMacAlgo](
   }
 }
 
-object ApplicationEndpoints {
+object ApplicationHttpEndpoint {
   def endpoints[F[_]: Sync, Auth: JWTMacAlgo](
     applicationService: ApplicationService[F],
     auth:               AuthHandler[F, Auth],
     srClient:           SRHttpClient[F],
     courseService:      CourseService[F],
   ): HttpRoutes[F] =
-    new ApplicationEndpoints[F, Auth](applicationService, auth, srClient, courseService).endpoints
+    new ApplicationHttpEndpoint[F, Auth](applicationService, auth, srClient, courseService).endpoints
 }
