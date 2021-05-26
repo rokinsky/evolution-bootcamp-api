@@ -4,7 +4,6 @@ import cats.effect.{Clock, Sync}
 import com.evolutiongaming.bootcamp.applications.ApplicationService
 import com.evolutiongaming.bootcamp.shared.HttpCommon.AuthHandler
 import com.evolutiongaming.bootcamp.sr.SRHttpClient
-import doobie.Transactor
 import org.http4s.HttpRoutes
 import tsec.jwt.algorithms.JWTMacAlgo
 
@@ -14,15 +13,14 @@ trait CourseModule[F[_]] {
 
 object CourseModule {
   def of[F[_]: Sync: Clock, Auth: JWTMacAlgo](
-    xa:                 Transactor[F],
+    courseService:      CourseService[F],
+    applicationService: ApplicationService[F],
     auth:               AuthHandler[F, Auth],
     srClient:           SRHttpClient[F],
-    applicationService: ApplicationService[F]
   ): CourseModule[F] = new CourseModule[F] {
     override def courseHttpEndpoint: HttpRoutes[F] = {
-      val courseRepo = CourseDoobieRepository(xa)
       CourseEndpoints.endpoints(
-        CourseService(courseRepo, CourseValidationInterpreter(courseRepo)),
+        courseService,
         auth,
         srClient,
         applicationService

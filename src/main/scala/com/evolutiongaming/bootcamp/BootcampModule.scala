@@ -35,19 +35,20 @@ object BootcampModule {
     srClient: SRHttpClient[F],
     key:      MacSigningKey[HMACSHA256]
   ) extends BootcampModule[F] {
-    private val authModule         = AuthModule.of(xa, key)
-    private val applicationService = ApplicationService(ApplicationDoobieRepository(xa))
-    private val courseRepo         = CourseDoobieRepository(xa)
-    private val courseService      = CourseService(courseRepo, CourseValidationInterpreter(courseRepo))
+    private val authModule            = AuthModule.of(xa, key)
+    private val applicationRepository = ApplicationDoobieRepository(xa)
+    private val applicationService    = ApplicationService(applicationRepository)
+    private val courseRepo            = CourseDoobieRepository(xa)
+    private val courseService         = CourseService(courseRepo, CourseValidationInterpreter(courseRepo))
 
     override def userHttpEndpoint: HttpRoutes[F] =
       UserModule.of(xa, authModule.routeAuth).userHttpEndpoint
 
     override def courseHttpEndpoint: HttpRoutes[F] =
-      CourseModule.of(xa, authModule.routeAuth, srClient, applicationService).courseHttpEndpoint
+      CourseModule.of(courseService, applicationService, authModule.routeAuth, srClient).courseHttpEndpoint
 
     override def applicationHttpEndpoint: HttpRoutes[F] =
-      ApplicationModule.of(xa, authModule.routeAuth, srClient, courseService).applicationHttpEndpoint
+      ApplicationModule.of(applicationService, courseService, authModule.routeAuth, srClient).applicationHttpEndpoint
   }
 
   private def bootstrap[F[_]: Sync](
@@ -71,7 +72,7 @@ object BootcampModule {
     ).pure[F]
     _ <- (
       UserQuery.createTable.run >>
-        UserQuery.insert(user).run >>
+        UserQuery.insert(user).run.attemptSql >>
         AuthQuery.createTable.run >>
         CourseQuery.createTable.run >>
         ApplicationQuery.createTable.run
