@@ -3,15 +3,14 @@ package com.evolutiongaming.bootcamp.courses
 import cats.data.NonEmptyList
 import doobie.implicits.toSqlInterpolator
 import doobie._
-import doobie.util.meta.{MetaConstructors, TimeMetaInstances}
+import doobie.postgres.Instances
+import doobie.util.meta.LegacyInstantMetaInstance
 
 import java.util.UUID
 
-object CourseQuery extends TimeMetaInstances with MetaConstructors {
+object CourseQuery extends LegacyInstantMetaInstance with Instances {
   implicit val statusMeta: Meta[CourseStatus] =
     Meta[String].imap(CourseStatus.withName)(_.entryName)
-
-  implicit val uuidMeta: Meta[UUID] = Meta[String].timap(UUID.fromString)(_.toString)
 
   def createTable: Update0 = sql"""
     CREATE TABLE IF NOT EXISTS courses (
@@ -20,7 +19,7 @@ object CourseQuery extends TimeMetaInstances with MetaConstructors {
       description VARCHAR NOT NULL,
       task_message VARCHAR NOT NULL,
       sr_id UUID UNIQUE,
-      submission_deadline DATETIME,
+      submission_deadline TIMESTAMP,
       status VARCHAR NOT NULL
     )
   """.update

@@ -2,16 +2,15 @@ package com.evolutiongaming.bootcamp.applications
 
 import com.evolutiongaming.bootcamp.sr.SRApplicationStatus
 import doobie.implicits.toSqlInterpolator
+import doobie.postgres.Instances
+import doobie.util.meta.LegacyInstantMetaInstance
 import doobie.{Meta, Query0, Update0}
-import doobie.util.meta.{MetaConstructors, TimeMetaInstances}
 
 import java.util.UUID
 
-object ApplicationQuery extends TimeMetaInstances with MetaConstructors {
+object ApplicationQuery extends LegacyInstantMetaInstance with Instances {
   implicit val statusMeta: Meta[SRApplicationStatus] =
     Meta[String].imap(SRApplicationStatus.withName)(_.entryName)
-
-  implicit val uuidMeta: Meta[UUID] = Meta[String].timap(UUID.fromString)(_.toString)
 
   def createTable: Update0 = sql"""
     CREATE TABLE IF NOT EXISTS applications (
@@ -20,8 +19,8 @@ object ApplicationQuery extends TimeMetaInstances with MetaConstructors {
       course_id UUID NOT NULL REFERENCES courses (id) ON DELETE CASCADE,
       sr_id UUID NOT NULL UNIQUE,
       solution_message VARCHAR,
-      created_at DATETIME NOT NULL,
-      submitted_at DATETIME,
+      created_at TIMESTAMP NOT NULL,
+      submitted_at TIMESTAMP,
       status VARCHAR NOT NULL,
       UNIQUE (user_id, course_id)
     )

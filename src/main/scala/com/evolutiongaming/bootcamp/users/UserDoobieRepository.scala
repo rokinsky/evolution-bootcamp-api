@@ -4,8 +4,10 @@ import cats.data.OptionT
 import cats.effect.Sync
 import cats.syntax.all._
 import com.evolutiongaming.bootcamp.shared.SqlCommon.paginate
+import com.evolutiongaming.bootcamp.users.UserError._
 import doobie._
 import doobie.implicits._
+import doobie.postgres.sqlstate.class23.UNIQUE_VIOLATION
 import tsec.authentication.IdentityStore
 
 import java.util.UUID
@@ -16,10 +18,13 @@ final class UserDoobieRepository[F[_]: Sync](xa: Transactor[F])
   import UserQuery._
 
   def create(user: User): F[User] =
-    insert(user).run.as(user).transact(xa)
+    insert(user).run
+      .exceptSomeSqlState { case UNIQUE_VIOLATION => UserAlreadyExists(user).raiseError[ConnectionIO, Int] }
+      .as(user)
+      .transact(xa)
 
   def update(user: User): F[User] =
-    UserQuery.update(user, user.id).run.transact(xa).as(user)
+    UserQuery.update(user, user.id).run.ensure(UserNotFound)(_ == 1).transact(xa).as(user)
 
   def get(userId: UUID): OptionT[F, User] = OptionT(select(userId).option.transact(xa))
 
@@ -27,7 +32,7 @@ final class UserDoobieRepository[F[_]: Sync](xa: Transactor[F])
     OptionT(byEmail(email).option.transact(xa))
 
   def delete(userId: UUID): F[Unit] =
-    UserQuery.delete(userId).run.transact(xa).void
+    UserQuery.delete(userId).run.ensure(UserNotFound)(_ == 1).transact(xa).void
 
   def list(pageSize: Int, offset: Int): F[List[User]] =
     paginate(pageSize, offset)(selectAll).to[List].transact(xa)

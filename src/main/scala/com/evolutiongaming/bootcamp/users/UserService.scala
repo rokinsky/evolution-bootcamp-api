@@ -2,6 +2,7 @@ package com.evolutiongaming.bootcamp.users
 
 import cats.MonadError
 import cats.implicits._
+import com.evolutiongaming.bootcamp.users.UserError.UserNotFound
 
 import java.util.UUID
 

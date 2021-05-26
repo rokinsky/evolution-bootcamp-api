@@ -5,6 +5,7 @@ import cats.syntax.all._
 import com.evolutiongaming.bootcamp.auth.{Auth, LoginDto, SignupDto}
 import com.evolutiongaming.bootcamp.effects.GenUUID
 import com.evolutiongaming.bootcamp.shared.HttpCommon._
+import com.evolutiongaming.bootcamp.users.UserError.{UserAlreadyExists, UserAuthenticationFailed, UserNotFound}
 import com.evolutiongaming.bootcamp.users.dto.UpdateUserDto
 import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
 import org.http4s.dsl.Http4sDsl
@@ -77,10 +78,10 @@ final class UserHttpEndpoint[F[_]: Sync, A, Auth: JWTMacAlgo](
   }
 
   private val userErrorInterceptor: PartialFunction[Throwable, F[Response[F]]] = {
-    case UserAuthenticationFailed(email) => BadRequest(s"Authentication failed for user with email ${email}")
-    case UserAlreadyExists(user)         => Conflict(s"The user with email ${user.email} already exists")
-    case UserNotFound                    => NotFound("The user was not found")
-    case ex: Throwable => InternalServerError(ex.getMessage) // TODO: probably we don't need this
+    case e @ UserNotFound => NotFound(e.getMessage)
+    case e: UserAuthenticationFailed => BadRequest(e.getMessage)
+    case e: UserAlreadyExists        => Conflict(e.getMessage)
+    case e: Throwable                => InternalServerError(e.getMessage)
   }
 
   def endpoints: HttpRoutes[F] = {

@@ -1,18 +1,18 @@
 package com.evolutiongaming.bootcamp.users
 
-import doobie.implicits._
-import io.circe.parser.decode
 import cats.syntax.all._
+import doobie.implicits._
+import doobie.postgres.Instances
+import doobie.util.meta.LegacyInstantMetaInstance
 import doobie.{Meta, Query0, Update0}
+import io.circe.parser.decode
 import io.circe.syntax.EncoderOps
 
 import java.util.UUID
 
-object UserQuery {
+object UserQuery extends LegacyInstantMetaInstance with Instances {
   implicit val roleMeta: Meta[Role] =
     Meta[String].imap(decode[Role](_).leftMap(throw _).merge)(_.asJson.toString)
-
-  implicit val uuidMeta: Meta[UUID] = Meta[String].timap(UUID.fromString)(_.toString)
 
   def createTable: Update0 = sql"""
     CREATE TABLE IF NOT EXISTS users (

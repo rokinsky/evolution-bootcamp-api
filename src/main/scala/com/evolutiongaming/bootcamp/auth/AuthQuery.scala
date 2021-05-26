@@ -3,8 +3,9 @@ package com.evolutiongaming.bootcamp.auth
 import cats.Id
 import cats.syntax.all._
 import doobie.implicits.toSqlInterpolator
-import doobie.util.meta.{MetaConstructors, TimeMetaInstances}
-import doobie.{Meta, Put, Query0, Update0}
+import doobie.postgres.Instances
+import doobie.util.meta.LegacyInstantMetaInstance
+import doobie.{Put, Query0, Update0}
 import tsec.authentication.AugmentedJWT
 import tsec.common.SecureRandomId
 import tsec.jws.JWSSerializer
@@ -13,9 +14,7 @@ import tsec.jws.mac.JWSMacHeader
 import java.time.Instant
 import java.util.UUID
 
-object AuthQuery extends TimeMetaInstances with MetaConstructors {
-
-  implicit val uuidMeta: Meta[UUID] = Meta[String].timap(UUID.fromString)(_.toString)
+object AuthQuery extends LegacyInstantMetaInstance with Instances {
 
   implicit val secureRandomIdPut: Put[SecureRandomId] =
     Put[String].contramap((_: Id[SecureRandomId]).widen)

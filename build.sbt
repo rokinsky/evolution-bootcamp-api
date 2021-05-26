@@ -22,6 +22,7 @@ val doobieVersion          = "0.13.3"
 val catsVersion            = "2.6.0"
 val catsTaglessVersion     = "0.11"
 val catsEffectVersion      = "2.2.0"
+val log4catsVersion        = "1.3.1"
 val epimetheusVersion      = "0.4.2"
 
 val log4CatsVersion = "1.1.1"
@@ -35,6 +36,7 @@ val kindProjectorVersion = "0.13.0"
 libraryDependencies ++= Seq(
   "org.typelevel"            %% "cats-core"                     % catsVersion,
   "org.typelevel"            %% "cats-effect"                   % catsEffectVersion,
+  "org.typelevel"            %% "log4cats-slf4j"                % log4catsVersion,
   "org.http4s"               %% "http4s-dsl"                    % http4sVersion,
   "org.http4s"               %% "http4s-blaze-server"           % http4sVersion,
   "org.http4s"               %% "http4s-blaze-client"           % http4sVersion,
@@ -57,7 +59,8 @@ libraryDependencies ++= Seq(
   "com.beachape"             %% "enumeratum-circe"              % enumeratumCirceVersion,
   "org.fusesource.leveldbjni" % "leveldbjni-all"                % "1.8",
   "org.tpolecat"             %% "doobie-core"                   % doobieVersion,
-  "org.tpolecat"             %% "doobie-h2"                     % doobieVersion,
+  "org.tpolecat"             %% "doobie-postgres"               % doobieVersion,
+  "org.tpolecat"             %% "doobie-postgres-circe"         % doobieVersion,
   "org.tpolecat"             %% "doobie-hikari"                 % doobieVersion,
   "org.mockito"              %% "mockito-scala"                 % "1.16.32"        % Test,
   "org.scalaj"               %% "scalaj-http"                   % "2.4.2"          % Test,
