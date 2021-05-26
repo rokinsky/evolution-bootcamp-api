@@ -1,4 +1,4 @@
-package com.evolutiongaming.bootcamp.sr
+package com.evolutiongaming.bootcamp.sr.dto
 
 import io.circe.generic.JsonCodec
 import io.circe.generic.extras.JsonKey

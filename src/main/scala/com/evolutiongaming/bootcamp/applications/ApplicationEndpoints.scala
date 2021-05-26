@@ -8,7 +8,8 @@ import com.evolutiongaming.bootcamp.applications.dto.ApplicationSubmitDto
 import com.evolutiongaming.bootcamp.auth.Auth
 import com.evolutiongaming.bootcamp.courses.CourseService
 import com.evolutiongaming.bootcamp.shared.HttpCommon.{AuthEndpoint, AuthHandler, AuthService}
-import com.evolutiongaming.bootcamp.sr.{SRApplicationStatus, SRApplicationWebhookPayload, SRHttpClient}
+import com.evolutiongaming.bootcamp.sr.dto.SRApplicationWebhookPayload
+import com.evolutiongaming.bootcamp.sr.{SRApplicationStatus, SRHttpClient}
 import org.http4s._
 import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
 import org.http4s.dsl.Http4sDsl

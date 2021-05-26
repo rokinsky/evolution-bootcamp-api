@@ -3,6 +3,14 @@ package com.evolutiongaming.bootcamp.sr
 import cats.effect.Sync
 import cats.syntax.all._
 import com.evolutiongaming.bootcamp.config.app.SRConfig
+import com.evolutiongaming.bootcamp.sr.dto.{
+  SRApplicationStatusInfo,
+  SRApplyApiResponse,
+  SRMessage,
+  SRMessageDetails,
+  SRSubscription,
+  SRSubscriptionRequest
+}
 import org.http4s._
 import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
 import org.http4s.client._
