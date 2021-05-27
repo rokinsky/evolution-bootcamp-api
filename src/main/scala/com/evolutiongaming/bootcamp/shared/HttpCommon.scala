@@ -14,10 +14,8 @@ object HttpCommon {
 
   type AuthHandler[F[_], Auth] = SecuredRequestHandler[F, UUID, User, AugmentedJWT[Auth, UUID]]
 
-  /* Necessary for decoding query parameters */
   import QueryParamDecoder._
 
-  /* Parses out the optional offset and page size params */
   object OptionalPageSizeMatcher extends OptionalQueryParamDecoderMatcher[Int]("pageSize")
   object OptionalOffsetMatcher extends OptionalQueryParamDecoderMatcher[Int]("offset")
 }
