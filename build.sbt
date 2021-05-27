@@ -56,6 +56,7 @@ libraryDependencies ++= Seq(
   "io.circe"                 %% "circe-generic-extras"          % circeVersion,
   "io.circe"                 %% "circe-optics"                  % circeVersion,
   "io.circe"                 %% "circe-parser"                  % circeVersion,
+  "io.circe"                 %% "circe-literal"                 % circeVersion,
   "com.beachape"             %% "enumeratum-circe"              % enumeratumCirceVersion,
   "org.fusesource.leveldbjni" % "leveldbjni-all"                % "1.8",
   "org.tpolecat"             %% "doobie-core"                   % doobieVersion,

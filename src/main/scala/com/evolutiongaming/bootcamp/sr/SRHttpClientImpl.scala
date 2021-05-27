@@ -9,6 +9,7 @@ import com.evolutiongaming.bootcamp.sr.dto.{
   SRSubscription,
   SRSubscriptionRequest
 }
+import io.circe.Json
 import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
 import org.http4s.{Header, MediaType, Method, Uri}
 import org.http4s.client.Client
@@ -20,8 +21,8 @@ import java.util.UUID
 final class SRHttpClientImpl[F[_]: Sync](client: Client[F], uri: Uri, token: String)
   extends SRHttpClient[F]
     with Http4sClientDsl[F] {
-  override def getPostingConfiguration(postingId: UUID): F[String] =
-    client.expect[String](
+  override def getPostingConfiguration(postingId: UUID): F[Json] =
+    client.expect[Json](
       Method
         .GET(
           uri / "postings" / postingId.toString / "configuration",
@@ -29,7 +30,7 @@ final class SRHttpClientImpl[F[_]: Sync](client: Client[F], uri: Uri, token: Str
         )
     )
 
-  override def createPostingCandidate(postingId: UUID, data: String): F[SRApplyApiResponse] =
+  override def createPostingCandidate(postingId: UUID, data: Json): F[SRApplyApiResponse] =
     client.expect[SRApplyApiResponse](
       Method
         .POST(

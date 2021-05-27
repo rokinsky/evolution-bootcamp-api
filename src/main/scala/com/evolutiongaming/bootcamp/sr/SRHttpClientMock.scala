@@ -10,15 +10,17 @@ import com.evolutiongaming.bootcamp.sr.dto.{
   SRVersionedEvent
 }
 import cats.syntax.all._
+import io.circe.Json
+import io.circe.literal.JsonStringContext
 
 import java.util.UUID
 
 final class SRHttpClientMock[F[_]: Sync] extends SRHttpClient[F] {
-  override def getPostingConfiguration(postingId: UUID): F[String] =
-    """{"questions":[{"id":"string","label":"string","repeatable":true,"fields":[{"id":"string","label":"string","type":"INPUT_TEXT","required":true,"complianceType":"DIVERSITY","values":[{"id":"string","label":"string"}]}]}],"settings":{"avatarUploadAvailable":true},"privacyPolicies":[{"url":"string","orgName":"string"}]}"""
+  override def getPostingConfiguration(postingId: UUID): F[Json] =
+    json"""{"questions":[{"id":"string","label":"string","repeatable":true,"fields":[{"id":"string","label":"string","type":"INPUT_TEXT","required":true,"complianceType":"DIVERSITY","values":[{"id":"string","label":"string"}]}]}],"settings":{"avatarUploadAvailable":true},"privacyPolicies":[{"url":"string","orgName":"string"}]}"""
       .pure[F]
 
-  override def createPostingCandidate(postingId: UUID, data: String): F[SRApplyApiResponse] = for {
+  override def createPostingCandidate(postingId: UUID, data: Json): F[SRApplyApiResponse] = for {
     id  <- GenUUID[F].random
     res <- SRApplyApiResponse(id, "2021-04-30T15:54:36.240320Z", "https://google.com").pure[F]
   } yield res
