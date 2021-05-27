@@ -15,4 +15,7 @@ object ApplicationError {
   final case class ApplicationNotFound(id: UUID) extends ApplicationError {
     override def getMessage: String = s"The application with id $id was not found"
   }
+  final case class ApplicationNotPending(id: UUID) extends ApplicationError {
+    override def getMessage: String = s"The application with id $id doesn't have a review status"
+  }
 }

@@ -1,6 +1,6 @@
 package com.evolutiongaming.bootcamp.applications
 
-import com.evolutiongaming.bootcamp.applications.dto.CreateApplicationDto
+import com.evolutiongaming.bootcamp.applications.dto.{CreateApplicationDto, UpdateApplicationDto}
 import com.evolutiongaming.bootcamp.sr.SRApplicationStatus
 import io.circe.generic.JsonCodec
 
@@ -26,5 +26,16 @@ object Application {
     courseId  = createApplicationDto.courseId,
     srId      = createApplicationDto.srId,
     createdAt = createdAt
+  )
+
+  def of(id: UUID, updateApplicationDto: UpdateApplicationDto): Application = Application(
+    id              = id,
+    userId          = updateApplicationDto.userId,
+    courseId        = updateApplicationDto.courseId,
+    srId            = updateApplicationDto.srId,
+    solutionMessage = updateApplicationDto.solutionMessage,
+    createdAt       = updateApplicationDto.createdAt,
+    submittedAt     = updateApplicationDto.submittedAt,
+    status          = updateApplicationDto.status,
   )
 }

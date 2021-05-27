@@ -5,12 +5,14 @@ import cats.syntax.all._
 import com.evolutiongaming.bootcamp.applications.ApplicationError.{
   ApplicationAlreadyExists,
   ApplicationNotFound,
+  ApplicationNotPending,
   ApplicationSolutionAlreadyExists
 }
-import com.evolutiongaming.bootcamp.applications.dto.{ApplicationSubmitDto, CreateApplicationDto}
+import com.evolutiongaming.bootcamp.applications.dto.{ApplicationSubmitDto, CreateApplicationDto, UpdateApplicationDto}
 import com.evolutiongaming.bootcamp.auth.Auth
 import com.evolutiongaming.bootcamp.courses.CourseError.CourseNotFound
-import com.evolutiongaming.bootcamp.courses.CourseService
+import com.evolutiongaming.bootcamp.courses.dto.UpdateCourseDto
+import com.evolutiongaming.bootcamp.courses.{Course, CourseService}
 import com.evolutiongaming.bootcamp.effects.GenUUID
 import com.evolutiongaming.bootcamp.shared.HttpCommon.{
   AuthEndpoint,
@@ -52,10 +54,19 @@ final class ApplicationHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
     } yield res).handleErrorWith(applicationErrorInterceptor)
   }
 
+  private def updateApplicationEndpoint(): AuthEndpoint[F, Auth] = { case req @ PUT -> Root / UUIDVar(id) asAuthed _ =>
+    (for {
+      updateApplicationDto <- req.request.as[UpdateApplicationDto]
+      application          <- Application.of(id, updateApplicationDto).pure[F]
+      updatedApplication   <- applicationService.update(application)
+      res                  <- Accepted(updatedApplication)
+    } yield res).handleErrorWith(applicationErrorInterceptor)
+  }
+
   private def deleteApplicationEndpoint(): AuthEndpoint[F, Auth] = { case DELETE -> Root / UUIDVar(id) asAuthed _ =>
     (for {
       _   <- applicationService.delete(id)
-      res <- Ok()
+      res <- Accepted()
     } yield res).handleErrorWith(applicationErrorInterceptor)
   }
 
@@ -82,15 +93,16 @@ final class ApplicationHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
       } yield res).handleErrorWith(applicationErrorInterceptor)
   }
 
-  private def getUserApplicationEndpoint: AuthEndpoint[F, Auth] = { case GET -> Root / UUIDVar(id) asAuthed user =>
-    (for {
-      application <- applicationService.getUserApplication(id, user.id)
-      res         <- Ok(application)
-    } yield res).handleErrorWith(applicationErrorInterceptor)
+  private def getUserApplicationEndpoint: AuthEndpoint[F, Auth] = {
+    case GET -> Root / "user" / UUIDVar(id) asAuthed user =>
+      (for {
+        application <- applicationService.getUserApplication(id, user.id)
+        res         <- Ok(application)
+      } yield res).handleErrorWith(applicationErrorInterceptor)
   }
 
   private def listUserApplicationsEndpoint: AuthEndpoint[F, Auth] = {
-    case GET -> Root :? OptionalPageSizeMatcher(pageSize) :? OptionalOffsetMatcher(
+    case GET -> Root / "user" :? OptionalPageSizeMatcher(pageSize) :? OptionalOffsetMatcher(
           offset,
         ) asAuthed user =>
       for {
@@ -129,6 +141,7 @@ final class ApplicationHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
   private val applicationErrorInterceptor: PartialFunction[Throwable, F[Response[F]]] = {
     case e: ApplicationAlreadyExists         => Conflict(e.getMessage)
     case e: ApplicationSolutionAlreadyExists => Conflict(e.getMessage)
+    case e: ApplicationNotPending            => BadRequest(e.getMessage)
     case e: ApplicationNotFound              => NotFound(e.getMessage)
     case e: Throwable                        => InternalServerError(e.getMessage)
   }
@@ -142,6 +155,7 @@ final class ApplicationHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
       listApplicationsEndpoint
         .orElse(getApplicationEndpoint)
         .orElse(createApplicationEndpoint)
+        .orElse(updateApplicationEndpoint())
         .orElse(deleteApplicationEndpoint())
 
     val authEndpoints: AuthService[F, Auth] =

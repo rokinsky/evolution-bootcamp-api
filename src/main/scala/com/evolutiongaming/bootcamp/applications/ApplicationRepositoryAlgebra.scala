@@ -13,6 +13,8 @@ trait ApplicationRepositoryAlgebra[F[_]] {
 
   def getBySR(srId: UUID): F[Option[Application]]
 
+  def update(application: Application): F[Application]
+
   def updateStatusBySR(srId: UUID, status: SRApplicationStatus): F[Application]
 
   def updateSolution(id: UUID, userId: UUID, solutionMessage: Option[String]): F[Application]

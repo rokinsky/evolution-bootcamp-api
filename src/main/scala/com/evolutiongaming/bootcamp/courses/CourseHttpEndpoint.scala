@@ -2,6 +2,7 @@ package com.evolutiongaming.bootcamp.courses
 
 import cats.effect.{Clock, Sync}
 import cats.syntax.all._
+import com.evolutiongaming.bootcamp.applications.ApplicationError.ApplicationAlreadyExists
 import com.evolutiongaming.bootcamp.applications.{Application, ApplicationService}
 import com.evolutiongaming.bootcamp.auth.Auth
 import com.evolutiongaming.bootcamp.courses.CourseError.{CourseAlreadyExists, CourseNotFound, CourseRegistrationClosed}
@@ -40,13 +41,8 @@ final class CourseHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
   private def applyCourseEndpoint: AuthEndpoint[F, Auth] = {
     case req @ POST -> Root / UUIDVar(id) / "apply" asAuthed user =>
       (for {
-        data <- req.request.as[Json]
-        time <- Clock[F].instantNow
-        course <- courseService
-          .get(id)
-          .ensure(CourseRegistrationClosed)(course =>
-            course.status == CourseStatus.REGISTRATION && time.isBefore(course.submissionDeadline)
-          )
+        data          <- req.request.as[Json]
+        course        <- courseService.getEnrolling(id)
         applyResponse <- srClient.createPostingCandidate(course.srId, data)
         id            <- GenUUID[F].random
         time          <- Clock[F].instantNow
@@ -54,13 +50,15 @@ final class CourseHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
           Application(id, user.id, course.id, applyResponse.id, None, time)
         )
         res <- Accepted(application)
-      } yield res).handleErrorWith(courseErrorInterceptor)
+      } yield res)
+        .recoverWith { case e: ApplicationAlreadyExists => Conflict(e.getMessage) }
+        .handleErrorWith(courseErrorInterceptor)
   }
 
   private def getCourseConfigurationEndpoint: AuthEndpoint[F, Auth] = {
     case GET -> Root / UUIDVar(id) / "configuration" asAuthed _ =>
       (for {
-        course        <- courseService.get(id)
+        course        <- courseService.getEnrolling(id)
         configuration <- srClient.getPostingConfiguration(course.srId)
         res           <- Ok(configuration)
       } yield res).handleErrorWith(courseErrorInterceptor)

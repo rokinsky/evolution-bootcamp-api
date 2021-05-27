@@ -18,7 +18,7 @@ object ApplicationQuery extends LegacyInstantMetaInstance with Instances {
   """.query
 
   def selectByUserId(userId: UUID): Query0[Application] =
-    (selectAll.toFragment ++ fr"user_id = $userId").query
+    (selectAll.toFragment ++ fr"WHERE user_id = $userId").query
 
   def select(applicationId: UUID): Query0[Application] =
     (selectAll.toFragment ++ fr"WHERE id = $applicationId").query
@@ -32,6 +32,12 @@ object ApplicationQuery extends LegacyInstantMetaInstance with Instances {
   def insert(application: Application): Update0 = sql"""
     INSERT INTO applications (id, user_id, course_id, sr_id, solution_message, created_at, submitted_at, status)
     VALUES (${application.id}, ${application.userId}, ${application.courseId}, ${application.srId}, ${application.solutionMessage}, ${application.createdAt}, ${application.submittedAt}, ${application.status})
+  """.update
+
+  def update(application: Application, id: UUID): Update0 = sql"""
+    UPDATE applications
+    SET user_id = ${application.userId}, course_id = ${application.courseId}, sr_id = ${application.srId}, solution_message = ${application.solutionMessage}, created_at = ${application.createdAt}, submitted_at = ${application.submittedAt}, status = ${application.status}
+    WHERE id = $id
   """.update
 
   def updateStatusBySr(srId: UUID, status: SRApplicationStatus): Update0 = sql"""

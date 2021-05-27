@@ -2,12 +2,13 @@ package com.evolutiongaming.bootcamp.courses
 
 import cats.MonadError
 import cats.data._
-import cats.implicits._
-import com.evolutiongaming.bootcamp.courses.CourseError.CourseNotFound
+import cats.effect.Clock
+import cats.syntax.all._
+import com.evolutiongaming.bootcamp.courses.CourseError.{CourseNotFound, CourseRegistrationClosed}
 
 import java.util.UUID
 
-final class CourseService[F[_]: MonadError[*[_], Throwable]](
+final class CourseService[F[_]: MonadError[*[_], Throwable]: Clock](
   repository: CourseRepositoryAlgebra[F],
 ) {
   def create(course: Course): F[Course] =
@@ -18,6 +19,14 @@ final class CourseService[F[_]: MonadError[*[_], Throwable]](
 
   def get(id: UUID): F[Course] =
     OptionT(repository.get(id)).cataF(CourseNotFound(id).raiseError[F, Course], _.pure[F])
+
+  def getEnrolling(id: UUID): F[Course] = for {
+    time <- Clock[F].instantNow
+    course <- get(id)
+      .ensure(CourseRegistrationClosed)(course =>
+        course.status == CourseStatus.REGISTRATION && time.isBefore(course.submissionDeadline)
+      )
+  } yield course
 
   def getBySR(srId: UUID): F[Course] =
     OptionT(repository.getBySR(srId)).cataF(CourseNotFound(srId).raiseError[F, Course], _.pure[F])
@@ -33,7 +42,7 @@ final class CourseService[F[_]: MonadError[*[_], Throwable]](
 }
 
 object CourseService {
-  def apply[F[_]: MonadError[*[_], Throwable]](
+  def apply[F[_]: MonadError[*[_], Throwable]: Clock](
     repository: CourseRepositoryAlgebra[F],
   ): CourseService[F] =
     new CourseService[F](repository)

@@ -22,6 +22,9 @@ final class ApplicationService[F[_]: MonadError[*[_], Throwable]](applicationRep
   def delete(id: UUID): F[Unit] =
     applicationRepo.delete(id)
 
+  def update(application: Application): F[Application] =
+    applicationRepo.update(application)
+
   def updateApplicationStatusBySR(srId: UUID, status: SRApplicationStatus): F[Application] =
     applicationRepo.updateStatusBySR(srId, status)
 

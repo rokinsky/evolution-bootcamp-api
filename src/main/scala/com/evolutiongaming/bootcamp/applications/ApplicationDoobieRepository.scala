@@ -6,6 +6,7 @@ import cats.syntax.all._
 import com.evolutiongaming.bootcamp.applications.ApplicationError.{
   ApplicationAlreadyExists,
   ApplicationNotFound,
+  ApplicationNotPending,
   ApplicationSolutionAlreadyExists
 }
 import com.evolutiongaming.bootcamp.shared.SqlCommon.paginate
@@ -42,6 +43,17 @@ final class ApplicationDoobieRepository[F[_]: Bracket[*[_], Throwable]](xa: Tran
   override def delete(applicationId: UUID): F[Unit] =
     ApplicationQuery.delete(applicationId).run.ensure(ApplicationNotFound(applicationId))(_ == 1).transact(xa).void
 
+  override def update(application: Application): F[Application] =
+    ApplicationQuery
+      .update(application, application.id)
+      .run
+      .exceptSomeSqlState { case UNIQUE_VIOLATION =>
+        ApplicationAlreadyExists(application).raiseError[ConnectionIO, Int]
+      }
+      .ensure(ApplicationNotFound(application.id))(_ == 1)
+      .transact(xa)
+      .as(application)
+
   override def updateStatusBySR(srId: UUID, status: SRApplicationStatus): F[Application] =
     (for {
       _ <- ApplicationQuery.updateStatusBySr(srId, status).run
@@ -54,6 +66,7 @@ final class ApplicationDoobieRepository[F[_]: Bracket[*[_], Throwable]](xa: Tran
       application <- OptionT(ApplicationQuery.selectByIdAndUser(id, userId).option)
         .cataF(ApplicationNotFound(id).raiseError[ConnectionIO, Application], _.pure[ConnectionIO])
         .ensure(ApplicationSolutionAlreadyExists(id))(_.solutionMessage.isEmpty)
+        .ensure(ApplicationNotPending(id))(_.status == SRApplicationStatus.IN_REVIEW)
       _                  <- ApplicationQuery.updateSolution(id, solutionMessage).run
       updatedApplication <- application.copy(solutionMessage = solutionMessage).pure[ConnectionIO]
     } yield updatedApplication).transact(xa)
@@ -63,6 +76,7 @@ final class ApplicationDoobieRepository[F[_]: Bracket[*[_], Throwable]](xa: Tran
 
   override def listByUserId(userId: UUID, pageSize: Int, offset: Int): F[List[Application]] =
     paginate(pageSize, offset)(ApplicationQuery.selectByUserId(userId)).to[List].transact(xa)
+
 }
 
 object ApplicationDoobieRepository {
