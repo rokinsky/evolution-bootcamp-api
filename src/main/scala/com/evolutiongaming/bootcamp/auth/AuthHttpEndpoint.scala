@@ -24,8 +24,10 @@ final class AuthHttpEndpoint[F[_]: Sync, A, Auth: JWTMacAlgo](
     HttpRoutes.of[F] { case req @ POST -> Root / "login" =>
       (for {
         login <- req.as[LoginDto]
-        email <- login.email.pure[F]
-        user  <- userService.getUserByEmail(email)
+        email  = login.email
+        user <- userService
+          .getUserByEmail(email)
+          .attemptTap(_.leftMap(_ => AuthenticationFailed(email)).liftTo[F])
         _ <- cryptService
           .checkpw(login.password, PasswordHash[A](user.hash))
           .ensure(AuthenticationFailed(email))(_ == Verified)
