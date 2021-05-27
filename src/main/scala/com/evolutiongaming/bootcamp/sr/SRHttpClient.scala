@@ -17,11 +17,11 @@ import java.util.UUID
 
 trait SRHttpClient[F[_]] {
   // https://dev.smartrecruiters.com/customer-api/live-docs/application-api/#/Application%20API/getApplyConfigurationForPosting
-  // At the moment we don't need any model, so just the string data is returned
+  // At the moment we don't need any model, so just the json data is returned
   def getPostingConfiguration(postingId: UUID): F[Json]
 
   // https://dev.smartrecruiters.com/customer-api/live-docs/application-api/#/Application%20API/createCandidate
-  // At the moment we don't need any model, so just the string data is expected
+  // At the moment we don't need any model, so just the json data is expected
   def createPostingCandidate(postingId: UUID, data: Json): F[SRApplyApiResponse]
 
   // https://dev.smartrecruiters.com/customer-api/live-docs/message-api/#/messages/messages.shares.create

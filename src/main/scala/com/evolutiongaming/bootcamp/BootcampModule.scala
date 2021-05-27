@@ -80,7 +80,7 @@ object BootcampModule {
   def of[F[_]: Sync: Clock](conf: AppConfig, xa: Transactor[F], httpClient: Client[F]): F[BootcampModule[F]] = for {
     srClient <- SRHttpClient.mock(conf.smartRecruiters, httpClient) // TODO: test real implementation instead of mock
     _        <- bootstrap(xa, conf, srClient)
-    key      <- HMACSHA256.generateKey[F]
+    key      <- HMACSHA256.buildKey[F](conf.secretKey.getBytes)
     module   <- new BootcampModuleImpl(xa, srClient, key).pure[F]
   } yield module
 }
