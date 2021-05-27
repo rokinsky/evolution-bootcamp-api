@@ -8,6 +8,9 @@ object CourseError {
   final case class CourseAlreadyExists(course: Course) extends CourseError {
     override def getMessage: String = s"The course with Smart Recruiters Id ${course.srId} already exists"
   }
+  final case object CourseRegistrationClosed extends CourseError {
+    override def getMessage: String = s"The registration for course has been closed"
+  }
   final case class CourseNotFound(id: UUID) extends CourseError {
     override def getMessage: String = s"The course with id $id was not found"
   }

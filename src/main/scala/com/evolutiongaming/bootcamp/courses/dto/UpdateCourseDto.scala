@@ -13,5 +13,5 @@ final case class UpdateCourseDto(
   taskMessage:        String,
   srId:               UUID,
   submissionDeadline: Instant,
-  status:             CourseStatus = CourseStatus.REGISTRATION,
+  status:             CourseStatus,
 )

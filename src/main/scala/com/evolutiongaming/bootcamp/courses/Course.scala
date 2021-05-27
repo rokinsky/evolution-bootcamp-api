@@ -35,6 +35,7 @@ object Course {
       updateCourseDto.description,
       updateCourseDto.taskMessage,
       updateCourseDto.srId,
-      updateCourseDto.submissionDeadline
+      updateCourseDto.submissionDeadline,
+      updateCourseDto.status
     )
 }

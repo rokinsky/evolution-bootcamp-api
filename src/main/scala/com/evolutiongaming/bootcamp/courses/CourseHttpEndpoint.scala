@@ -4,7 +4,7 @@ import cats.effect.{Clock, Sync}
 import cats.syntax.all._
 import com.evolutiongaming.bootcamp.applications.{Application, ApplicationService}
 import com.evolutiongaming.bootcamp.auth.Auth
-import com.evolutiongaming.bootcamp.courses.CourseError.{CourseAlreadyExists, CourseNotFound}
+import com.evolutiongaming.bootcamp.courses.CourseError.{CourseAlreadyExists, CourseNotFound, CourseRegistrationClosed}
 import com.evolutiongaming.bootcamp.courses.dto.{CreateCourseDto, UpdateCourseDto}
 import com.evolutiongaming.bootcamp.effects.GenUUID
 import com.evolutiongaming.bootcamp.shared.HttpCommon._
@@ -39,8 +39,13 @@ final class CourseHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
   private def applyCourseEndpoint: AuthEndpoint[F, Auth] = {
     case req @ POST -> Root / UUIDVar(id) / "apply" asAuthed user =>
       (for {
-        data          <- req.request.as[String]
-        course        <- courseService.get(id)
+        data <- req.request.as[String]
+        time <- Clock[F].instantNow
+        course <- courseService
+          .get(id)
+          .ensure(CourseRegistrationClosed)(course =>
+            course.status == CourseStatus.REGISTRATION && time.isBefore(course.submissionDeadline)
+          )
         applyResponse <- srClient.createPostingCandidate(course.srId, data)
         id            <- GenUUID[F].random
         time          <- Clock[F].instantNow
@@ -94,6 +99,7 @@ final class CourseHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
   }
 
   private val courseErrorInterceptor: PartialFunction[Throwable, F[Response[F]]] = {
+    case e @ CourseRegistrationClosed => Gone(e.getMessage)
     case e: CourseNotFound      => NotFound(e.getMessage)
     case e: CourseAlreadyExists => BadRequest(e.getMessage)
     case e: Throwable           => InternalServerError(e.getMessage)
