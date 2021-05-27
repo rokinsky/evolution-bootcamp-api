@@ -45,26 +45,6 @@ final class ApplicationHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
     } yield res).handleErrorWith(applicationErrorInterceptor)
   }
 
-  private def submitUserApplicationSolutionEndpoint: AuthEndpoint[F, Auth] = {
-    case req @ PATCH -> Root / UUIDVar(id) / "submit" asAuthed user =>
-      (for {
-        applicationSubmitDto <- req.request.as[ApplicationSubmitDto]
-        savedApplication <- applicationService.updateApplicationSolution(
-          id,
-          user.id,
-          applicationSubmitDto.solutionMessage.some
-        )
-        res <- Accepted(savedApplication)
-      } yield res).handleErrorWith(applicationErrorInterceptor)
-  }
-
-  private def getUserApplicationEndpoint: AuthEndpoint[F, Auth] = { case GET -> Root / UUIDVar(id) asAuthed user =>
-    (for {
-      application <- applicationService.getUserApplication(id, user.id)
-      res         <- Ok(application)
-    } yield res).handleErrorWith(applicationErrorInterceptor)
-  }
-
   private def getApplicationEndpoint: AuthEndpoint[F, Auth] = { case GET -> Root / UUIDVar(id) asAuthed _ =>
     (for {
       application <- applicationService.get(id)
@@ -87,6 +67,26 @@ final class ApplicationHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
         applications <- applicationService.list(pageSize.getOrElse(10), offset.getOrElse(0))
         res          <- Ok(applications)
       } yield res
+  }
+
+  private def submitUserApplicationSolutionEndpoint: AuthEndpoint[F, Auth] = {
+    case req @ PATCH -> Root / UUIDVar(id) / "submit" asAuthed user =>
+      (for {
+        applicationSubmitDto <- req.request.as[ApplicationSubmitDto]
+        savedApplication <- applicationService.updateApplicationSolution(
+          id,
+          user.id,
+          applicationSubmitDto.solutionMessage.some
+        )
+        res <- Accepted(savedApplication)
+      } yield res).handleErrorWith(applicationErrorInterceptor)
+  }
+
+  private def getUserApplicationEndpoint: AuthEndpoint[F, Auth] = { case GET -> Root / UUIDVar(id) asAuthed user =>
+    (for {
+      application <- applicationService.getUserApplication(id, user.id)
+      res         <- Ok(application)
+    } yield res).handleErrorWith(applicationErrorInterceptor)
   }
 
   private def listUserApplicationsEndpoint: AuthEndpoint[F, Auth] = {
@@ -147,7 +147,9 @@ final class ApplicationHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
     val authEndpoints: AuthService[F, Auth] =
       Auth.allRolesHandler(allRoles)(Auth.adminOnly(onlyAdmin))
 
-    auth.liftService(authEndpoints) <+> hookApplicationEndpoint()
+    val unAuthEndpoints = hookApplicationEndpoint()
+
+    unAuthEndpoints <+> auth.liftService(authEndpoints)
   }
 }
 

@@ -2,7 +2,7 @@ package com.evolutiongaming.bootcamp.users
 
 import cats.Applicative
 import cats.implicits.catsSyntaxApplicativeId
-import com.evolutiongaming.bootcamp.users.dto.UpdateUserDto
+import com.evolutiongaming.bootcamp.users.dto.{CreateUserDto, UpdateUserDto}
 import io.circe.generic.JsonCodec
 import tsec.authorization.AuthorizationInfo
 
@@ -28,5 +28,14 @@ object User {
     updateUserDto.email,
     updateUserDto.hash,
     updateUserDto.role
+  )
+
+  def of(id: UUID, createUserDto: CreateUserDto): User = User(
+    id,
+    createUserDto.firstName,
+    createUserDto.lastName,
+    createUserDto.email,
+    createUserDto.hash,
+    createUserDto.role
   )
 }

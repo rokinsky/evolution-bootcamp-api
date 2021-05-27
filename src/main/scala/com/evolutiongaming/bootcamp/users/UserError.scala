@@ -9,7 +9,4 @@ object UserError {
   case object UserNotFound extends UserError {
     override def getMessage: String = s"The user was not found"
   }
-  final case class UserAuthenticationFailed(email: String) extends UserError {
-    override def getMessage: String = s"Authentication failed for user with email $email"
-  }
 }

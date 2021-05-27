@@ -14,6 +14,7 @@ import scala.concurrent.ExecutionContext.global
 object BootcampApp extends IOApp {
   private def httpApp[F[_]: Sync](ctx: BootcampModule[F]): HttpApp[F] =
     Router(
+      "/auth"         -> ctx.authHttpEndpoint,
       "/users"        -> ctx.userHttpEndpoint,
       "/courses"      -> ctx.courseHttpEndpoint,
       "/applications" -> ctx.applicationHttpEndpoint

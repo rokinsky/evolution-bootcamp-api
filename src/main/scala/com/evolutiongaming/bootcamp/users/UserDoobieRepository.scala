@@ -24,7 +24,13 @@ final class UserDoobieRepository[F[_]: Sync](xa: Transactor[F])
       .transact(xa)
 
   def update(user: User): F[User] =
-    UserQuery.update(user, user.id).run.ensure(UserNotFound)(_ == 1).transact(xa).as(user)
+    UserQuery
+      .update(user, user.id)
+      .run
+      .exceptSomeSqlState { case UNIQUE_VIOLATION => UserAlreadyExists(user).raiseError[ConnectionIO, Int] }
+      .ensure(UserNotFound)(_ == 1)
+      .transact(xa)
+      .as(user)
 
   def get(userId: UUID): OptionT[F, User] = OptionT(select(userId).option.transact(xa))
 

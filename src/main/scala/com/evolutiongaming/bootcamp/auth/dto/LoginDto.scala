@@ -1,4 +1,4 @@
-package com.evolutiongaming.bootcamp.auth
+package com.evolutiongaming.bootcamp.auth.dto
 
 import io.circe.generic.JsonCodec
 

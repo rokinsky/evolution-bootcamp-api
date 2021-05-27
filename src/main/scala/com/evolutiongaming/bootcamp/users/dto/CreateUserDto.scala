@@ -4,7 +4,7 @@ import com.evolutiongaming.bootcamp.users.Role
 import io.circe.generic.JsonCodec
 
 @JsonCodec
-final case class UpdateUserDto(
+final case class CreateUserDto(
   firstName: String,
   lastName:  String,
   email:     String,

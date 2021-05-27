@@ -15,7 +15,6 @@ import java.time.Instant
 import java.util.UUID
 
 object AuthQuery extends LegacyInstantMetaInstance with Instances {
-
   implicit val secureRandomIdPut: Put[SecureRandomId] =
     Put[String].contramap((_: Id[SecureRandomId]).widen)
 

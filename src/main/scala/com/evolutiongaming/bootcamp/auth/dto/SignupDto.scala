@@ -1,4 +1,4 @@
-package com.evolutiongaming.bootcamp.auth
+package com.evolutiongaming.bootcamp.auth.dto
 
 import com.evolutiongaming.bootcamp.users.{Role, User}
 import io.circe.generic.JsonCodec
@@ -12,7 +12,6 @@ final case class SignupDto(
   lastName:  String,
   email:     String,
   password:  String,
-  role:      Role,
 ) {
   def asUser[A](id: UUID, hashedPassword: PasswordHash[A]): User = User(
     id,
@@ -20,6 +19,6 @@ final case class SignupDto(
     lastName,
     email,
     hashedPassword,
-    role,
+    Role.Student,
   )
 }

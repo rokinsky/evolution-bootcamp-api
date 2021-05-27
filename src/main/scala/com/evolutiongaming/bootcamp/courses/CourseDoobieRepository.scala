@@ -22,7 +22,13 @@ final class CourseDoobieRepository[F[_]: Bracket[*[_], Throwable]](val xa: Trans
       .transact(xa)
 
   def update(course: Course): F[Course] =
-    CourseQuery.update(course, course.id).run.ensure(CourseNotFound(course.id))(_ == 1).transact(xa).as(course)
+    CourseQuery
+      .update(course, course.id)
+      .run
+      .exceptSomeSqlState { case UNIQUE_VIOLATION => CourseAlreadyExists(course).raiseError[ConnectionIO, Int] }
+      .ensure(CourseNotFound(course.id))(_ == 1)
+      .transact(xa)
+      .as(course)
 
   def get(id: UUID): F[Option[Course]] = select(id).option.transact(xa)
 

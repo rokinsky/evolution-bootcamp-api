@@ -23,7 +23,12 @@ import org.http4s.client.Client
 import tsec.mac.jca.{HMACSHA256, MacSigningKey}
 import tsec.passwordhashers.jca.BCrypt
 
-trait BootcampModule[F[_]] extends UserModule[F] with CourseModule[F] with ApplicationModule[F]
+trait BootcampModule[F[_]] {
+  def authHttpEndpoint:        HttpRoutes[F]
+  def userHttpEndpoint:        HttpRoutes[F]
+  def courseHttpEndpoint:      HttpRoutes[F]
+  def applicationHttpEndpoint: HttpRoutes[F]
+}
 
 object BootcampModule {
   final private class BootcampModuleImpl[F[_]: Sync: Clock](
@@ -34,6 +39,8 @@ object BootcampModule {
     private val authModule         = AuthModule.of(xa, key)
     private val applicationService = ApplicationService(ApplicationDoobieRepository(xa))
     private val courseService      = CourseService(CourseDoobieRepository(xa))
+
+    override def authHttpEndpoint: HttpRoutes[F] = authModule.authHttpEndpoint
 
     override def userHttpEndpoint: HttpRoutes[F] =
       UserModule.of(xa, authModule.routeAuth).userHttpEndpoint

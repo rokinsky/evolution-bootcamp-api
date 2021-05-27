@@ -5,7 +5,6 @@ import com.evolutiongaming.bootcamp.shared.HttpCommon.AuthHandler
 import doobie.util.transactor.Transactor
 import org.http4s.HttpRoutes
 import tsec.jwt.algorithms.JWTMacAlgo
-import tsec.passwordhashers.jca.BCrypt
 
 trait UserModule[F[_]] {
   def userHttpEndpoint: HttpRoutes[F]
@@ -17,6 +16,6 @@ object UserModule {
     auth: AuthHandler[F, Auth],
   ): UserModule[F] = new UserModule[F] {
     override def userHttpEndpoint: HttpRoutes[F] =
-      UserHttpEndpoint.endpoints(UserService(UserDoobieRepository(xa)), BCrypt.syncPasswordHasher[F], auth)
+      UserHttpEndpoint.endpoints(UserService(UserDoobieRepository(xa)), auth)
   }
 }
