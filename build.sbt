@@ -24,6 +24,7 @@ val catsTaglessVersion     = "0.11"
 val catsEffectVersion      = "2.2.0"
 val log4catsVersion        = "1.3.1"
 val epimetheusVersion      = "0.4.2"
+val flywayVersion          = "6.5.7"
 
 val log4CatsVersion = "1.1.1"
 
@@ -42,6 +43,7 @@ libraryDependencies ++= Seq(
   "org.http4s"               %% "http4s-blaze-client"           % http4sVersion,
   "org.http4s"               %% "http4s-circe"                  % http4sVersion,
   "org.http4s"               %% "http4s-jdk-http-client"        % "0.3.6",
+  "org.flywaydb"              % "flyway-core"                   % flywayVersion,
   "io.chrisdavenport"        %% "log4cats-slf4j"                % log4CatsVersion,
   "ch.qos.logback"            % "logback-classic"               % "1.2.3",
   "com.codecommit"           %% "cats-effect-testing-scalatest" % "0.4.1"          % Test,

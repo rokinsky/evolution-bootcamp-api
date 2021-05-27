@@ -12,18 +12,6 @@ object CourseQuery extends LegacyInstantMetaInstance with Instances {
   implicit val statusMeta: Meta[CourseStatus] =
     Meta[String].imap(CourseStatus.withName)(_.entryName)
 
-  def createTable: Update0 = sql"""
-    CREATE TABLE IF NOT EXISTS courses (
-      id UUID PRIMARY KEY,
-      title VARCHAR(100) NOT NULL,
-      description VARCHAR NOT NULL,
-      task_message VARCHAR NOT NULL,
-      sr_id UUID UNIQUE,
-      submission_deadline TIMESTAMP,
-      status VARCHAR NOT NULL
-    )
-  """.update
-
   def insert(course: Course): Update0 = sql"""
     INSERT INTO courses (id, title, description, task_message, sr_id, submission_deadline, status)
     VALUES (${course.id}, ${course.title}, ${course.description}, ${course.taskMessage}, ${course.srId}, ${course.submissionDeadline}, ${course.status})

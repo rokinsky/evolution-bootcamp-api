@@ -12,20 +12,6 @@ object ApplicationQuery extends LegacyInstantMetaInstance with Instances {
   implicit val statusMeta: Meta[SRApplicationStatus] =
     Meta[String].imap(SRApplicationStatus.withName)(_.entryName)
 
-  def createTable: Update0 = sql"""
-    CREATE TABLE IF NOT EXISTS applications (
-      id UUID PRIMARY KEY,
-      user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-      course_id UUID NOT NULL REFERENCES courses (id) ON DELETE CASCADE,
-      sr_id UUID NOT NULL UNIQUE,
-      solution_message VARCHAR,
-      created_at TIMESTAMP NOT NULL,
-      submitted_at TIMESTAMP,
-      status VARCHAR NOT NULL,
-      UNIQUE (user_id, course_id)
-    )
-  """.update
-
   def selectAll: Query0[Application] = sql"""
     SELECT id, user_id, course_id, sr_id, solution_message, created_at, submitted_at, status
     FROM applications

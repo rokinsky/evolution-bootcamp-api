@@ -14,17 +14,6 @@ object UserQuery extends LegacyInstantMetaInstance with Instances {
   implicit val roleMeta: Meta[Role] =
     Meta[String].imap(decode[Role](_).leftMap(throw _).merge)(_.asJson.toString)
 
-  def createTable: Update0 = sql"""
-    CREATE TABLE IF NOT EXISTS users (
-      id UUID PRIMARY KEY,
-      firstname VARCHAR NOT NULL,
-      lastname VARCHAR NOT NULL,
-      email VARCHAR NOT NULL UNIQUE,
-      hash VARCHAR NOT NULL,
-      role VARCHAR NOT NULL DEFAULT '"Student"'
-    )
-  """.update
-
   def populateData(
     id:        UUID,
     firstname: String,

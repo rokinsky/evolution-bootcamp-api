@@ -2,13 +2,8 @@ package com.evolutiongaming.bootcamp
 
 import cats.effect._
 import cats.implicits._
-import com.evolutiongaming.bootcamp.applications.{
-  ApplicationDoobieRepository,
-  ApplicationModule,
-  ApplicationQuery,
-  ApplicationService
-}
-import com.evolutiongaming.bootcamp.auth.{AuthModule, AuthQuery}
+import com.evolutiongaming.bootcamp.applications.{ApplicationDoobieRepository, ApplicationModule, ApplicationService}
+import com.evolutiongaming.bootcamp.auth.AuthModule
 import com.evolutiongaming.bootcamp.config.app.AppConfig
 import com.evolutiongaming.bootcamp.courses._
 import com.evolutiongaming.bootcamp.effects.GenUUID
@@ -57,6 +52,7 @@ object BootcampModule {
   ): F[Unit] = for {
     subscription <- srClient.subscribeApplicationStatusWebhook(s"${conf.publicUri}/applications/hook")
     _            <- srClient.activateSubscription(subscription.id)
+    // TODO: move admin creation to db-module
     adminUserId  <- GenUUID[F].random
     cryptService <- BCrypt.syncPasswordHasher[F].pure[F]
     hash         <- cryptService.hashpw(conf.defaultAdminUser.password)
@@ -68,12 +64,6 @@ object BootcampModule {
       hash,
       Role.Admin
     ).pure[F]
-    _ <- (
-      UserQuery.createTable.run >>
-        AuthQuery.createTable.run >>
-        CourseQuery.createTable.run >>
-        ApplicationQuery.createTable.run
-    ).transact(xa)
     _ <- UserQuery.insert(user).run.attemptSqlState.transact(xa)
   } yield ()
 

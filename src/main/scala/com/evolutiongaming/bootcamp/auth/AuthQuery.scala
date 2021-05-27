@@ -18,16 +18,6 @@ object AuthQuery extends LegacyInstantMetaInstance with Instances {
   implicit val secureRandomIdPut: Put[SecureRandomId] =
     Put[String].contramap((_: Id[SecureRandomId]).widen)
 
-  def createTable: Update0 = sql"""
-    CREATE TABLE IF NOT EXISTS auth (
-      id VARCHAR PRIMARY KEY,
-      jwt VARCHAR NOT NULL,
-      identity UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-      expiry TIMESTAMP NOT NULL,
-      last_touched TIMESTAMP
-    )
-  """.update
-
   def insert[A: Lambda[a => JWSSerializer[JWSMacHeader[a]]]](jwt: AugmentedJWT[A, UUID]): Update0 = sql"""
     INSERT INTO auth (id, jwt, identity, expiry, last_touched)
     VALUES (${jwt.id}, ${jwt.jwt.toEncodedString}, ${jwt.identity}, ${jwt.expiry}, ${jwt.lastTouched})

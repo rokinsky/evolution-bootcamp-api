@@ -1,7 +1,8 @@
 package com.evolutiongaming.bootcamp
 
 import cats.effect.{ConcurrentEffect, ContextShift, ExitCode, IO, IOApp, Resource, Sync, Timer}
-import com.evolutiongaming.bootcamp.config.{BootcampConfig, DatabaseConfig}
+import com.evolutiongaming.bootcamp.config.BootcampConfig
+import com.evolutiongaming.bootcamp.db.DatabaseModule
 import io.circe.config.parser
 import org.http4s.HttpApp
 import org.http4s.client.blaze.BlazeClientBuilder
@@ -23,7 +24,8 @@ object BootcampApp extends IOApp {
   private def resource[F[_]: Sync: ConcurrentEffect: ContextShift: Timer]: Resource[F, Server[F]] =
     for {
       conf       <- Resource.eval(parser.decodePathF[F, BootcampConfig]("bootcamp"))
-      transactor <- DatabaseConfig.transactor[F](conf.db)
+      transactor <- DatabaseModule.transactor[F](conf.db)
+      _          <- Resource.eval(DatabaseModule.init(conf.db))
       client     <- BlazeClientBuilder[F](global).resource
       ctx        <- Resource.eval(BootcampModule.of(conf.app, transactor, client))
       server <- BlazeServerBuilder[F](global)
