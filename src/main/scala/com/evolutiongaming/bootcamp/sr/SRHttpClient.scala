@@ -15,16 +15,24 @@ import org.http4s.client._
 import java.util.UUID
 
 trait SRHttpClient[F[_]] {
+  // https://dev.smartrecruiters.com/customer-api/live-docs/application-api/#/Application%20API/getApplyConfigurationForPosting
+  // At the moment we don't need any model, so just the string data is returned
   def getPostingConfiguration(postingId: UUID): F[String]
 
+  // https://dev.smartrecruiters.com/customer-api/live-docs/application-api/#/Application%20API/createCandidate
+  // At the moment we don't need any model, so just the string data is expected
   def createPostingCandidate(postingId: UUID, data: String): F[SRApplyApiResponse]
 
+  // https://dev.smartrecruiters.com/customer-api/live-docs/message-api/#/messages/messages.shares.create
   def sendCandidateEmail(candidateId: UUID, body: String): F[SRMessageDetails]
 
+  // https://dev.smartrecruiters.com/customer-api/live-docs/webhooks-subscriptions-api/#/subscriptions/subscriptions.create
   def subscribeApplicationStatusWebhook(callbackUrl: String): F[SRSubscription]
 
-  def activateSubscription(subscriptionId: String): F[Unit]
+  // https://dev.smartrecruiters.com/customer-api/live-docs/webhooks-subscriptions-api/#/subscriptions/subscriptions.activate
+  def activateSubscription(subscriptionId: UUID): F[Unit]
 
+  // https://dev.smartrecruiters.com/customer-api/live-docs/application-api/#/Application%20API/getApplicationStatus
   def getCandidateStatus(postingId: UUID, candidateId: UUID): F[SRApplicationStatusInfo]
 }
 

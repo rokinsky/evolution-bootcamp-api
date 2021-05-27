@@ -1,7 +1,8 @@
 package com.evolutiongaming.bootcamp.sr.dto
 
-import com.evolutiongaming.bootcamp.sr.SREvent
 import io.circe.generic.JsonCodec
 
+import java.util.UUID
+
 @JsonCodec
-final case class SRSubscription(id: String, callbackUrl: String, events: List[SREvent], status: String)
+final case class SRSubscription(id: UUID, callbackUrl: String, events: List[SRVersionedEvent], status: String)

@@ -20,7 +20,6 @@ import java.util.UUID
 final class SRHttpClientImpl[F[_]: Sync](client: Client[F], uri: Uri, token: String)
   extends SRHttpClient[F]
     with Http4sClientDsl[F] {
-  // https://dev.smartrecruiters.com/customer-api/live-docs/application-api/#/Application%20API/getApplyConfigurationForPosting
   override def getPostingConfiguration(postingId: UUID): F[String] =
     client.expect[String](
       Method
@@ -30,7 +29,6 @@ final class SRHttpClientImpl[F[_]: Sync](client: Client[F], uri: Uri, token: Str
         )
     )
 
-  // https://dev.smartrecruiters.com/customer-api/live-docs/application-api/#/Application%20API/createCandidate
   override def createPostingCandidate(postingId: UUID, data: String): F[SRApplyApiResponse] =
     client.expect[SRApplyApiResponse](
       Method
@@ -42,7 +40,6 @@ final class SRHttpClientImpl[F[_]: Sync](client: Client[F], uri: Uri, token: Str
         )
     )
 
-  // https://dev.smartrecruiters.com/customer-api/live-docs/message-api/#/messages/messages.shares.create
   override def sendCandidateEmail(candidateId: UUID, body: String): F[SRMessageDetails] =
     // TODO: should be checked if it sends emails correctly, otherwise 3rd party service should be used like Amazon SES
     client.expect[SRMessageDetails](
@@ -55,7 +52,6 @@ final class SRHttpClientImpl[F[_]: Sync](client: Client[F], uri: Uri, token: Str
         )
     )
 
-  // https://dev.smartrecruiters.com/customer-api/live-docs/webhooks-subscriptions-api/#/subscriptions/subscriptions.create
   override def subscribeApplicationStatusWebhook(callbackUrl: String): F[SRSubscription] =
     client.expect[SRSubscription](
       Method
@@ -67,18 +63,16 @@ final class SRHttpClientImpl[F[_]: Sync](client: Client[F], uri: Uri, token: Str
         )
     )
 
-  // https://dev.smartrecruiters.com/customer-api/live-docs/webhooks-subscriptions-api/#/subscriptions/subscriptions.activate
-  override def activateSubscription(subscriptionId: String): F[Unit] =
+  override def activateSubscription(subscriptionId: UUID): F[Unit] =
     client.expect[Unit](
       Method
         .PUT(
           (),
-          uri / "subscriptions" / subscriptionId / "activation",
+          uri / "subscriptions" / subscriptionId.toString / "activation",
           Header("X-SmartToken", token),
         )
     )
 
-  // https://dev.smartrecruiters.com/customer-api/live-docs/application-api/#/Application%20API/getApplicationStatus
   override def getCandidateStatus(postingId: UUID, candidateId: UUID): F[SRApplicationStatusInfo] =
     client.expect[SRApplicationStatusInfo](
       Method

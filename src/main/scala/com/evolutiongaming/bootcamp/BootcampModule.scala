@@ -14,9 +14,7 @@ import com.evolutiongaming.bootcamp.courses._
 import com.evolutiongaming.bootcamp.effects.GenUUID
 import com.evolutiongaming.bootcamp.sr.SRHttpClient
 import com.evolutiongaming.bootcamp.users.{Role, User, UserModule, UserQuery}
-import doobie.ConnectionIO
 import doobie.implicits._
-import doobie.postgres.sqlstate.class23.UNIQUE_VIOLATION
 import doobie.util.transactor.Transactor
 import org.http4s.HttpRoutes
 import org.http4s.client.Client
@@ -57,9 +55,8 @@ object BootcampModule {
     conf:     AppConfig,
     srClient: SRHttpClient[F]
   ): F[Unit] = for {
-    // TODO: test real integration
-    //    subscription <- srClient.subscribeApplicationStatusWebhook(s"${conf.publicUri}/applications/hook")
-    //    _            <- srClient.activateSubscription(subscription.id)
+    subscription <- srClient.subscribeApplicationStatusWebhook(s"${conf.publicUri}/applications/hook")
+    _            <- srClient.activateSubscription(subscription.id)
     adminUserId  <- GenUUID[F].random
     cryptService <- BCrypt.syncPasswordHasher[F].pure[F]
     hash         <- cryptService.hashpw(conf.defaultAdminUser.password)
@@ -77,12 +74,7 @@ object BootcampModule {
         CourseQuery.createTable.run >>
         ApplicationQuery.createTable.run
     ).transact(xa)
-    _ <- UserQuery
-      .insert(user)
-      .run
-      .void
-      .exceptSomeSqlState { case UNIQUE_VIOLATION => ().pure[ConnectionIO] }
-      .transact(xa)
+    _ <- UserQuery.insert(user).run.attemptSqlState.transact(xa)
   } yield ()
 
   def of[F[_]: Sync: Clock](conf: AppConfig, xa: Transactor[F], httpClient: Client[F]): F[BootcampModule[F]] = for {
