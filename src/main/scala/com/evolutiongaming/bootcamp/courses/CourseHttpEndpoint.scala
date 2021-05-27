@@ -9,6 +9,7 @@ import com.evolutiongaming.bootcamp.courses.dto.{CreateCourseDto, UpdateCourseDt
 import com.evolutiongaming.bootcamp.effects.GenUUID
 import com.evolutiongaming.bootcamp.shared.HttpCommon._
 import com.evolutiongaming.bootcamp.sr.SRHttpClient
+import io.circe.syntax.EncoderOps
 import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
 import org.http4s.dsl.Http4sDsl
 import org.http4s.{HttpRoutes, QueryParamDecoder, Response}
@@ -59,9 +60,9 @@ final class CourseHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
   private def getCourseConfigurationEndpoint: AuthEndpoint[F, Auth] = {
     case GET -> Root / UUIDVar(id) / "configuration" asAuthed _ =>
       (for {
-        course <- courseService.get(id)
-        _      <- srClient.getPostingConfiguration(course.srId)
-        res    <- Ok(course)
+        course        <- courseService.get(id)
+        configuration <- srClient.getPostingConfiguration(course.srId)
+        res           <- Ok(configuration.asJson)
       } yield res).handleErrorWith(courseErrorInterceptor)
   }
 

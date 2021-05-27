@@ -15,7 +15,7 @@ import java.util.UUID
 
 final class SRHttpClientMock[F[_]: Sync] extends SRHttpClient[F] {
   override def getPostingConfiguration(postingId: UUID): F[String] =
-    "{\"questions\":[{\"id\":\"string\",\"label\":\"string\",\"repeatable\":true,\"fields\":[{\"id\":\"string\",\"label\":\"string\",\"type\":\"INPUT_TEXT\",\"required\":true,\"complianceType\":\"DIVERSITY\",\"values\":[{\"id\":\"string\",\"label\":\"string\"}]}]}],\"settings\":{\"avatarUploadAvailable\":true},\"privacyPolicies\":[{\"url\":\"string\",\"orgName\":\"string\"}]}"
+    """{"questions":[{"id":"string","label":"string","repeatable":true,"fields":[{"id":"string","label":"string","type":"INPUT_TEXT","required":true,"complianceType":"DIVERSITY","values":[{"id":"string","label":"string"}]}]}],"settings":{"avatarUploadAvailable":true},"privacyPolicies":[{"url":"string","orgName":"string"}]}"""
       .pure[F]
 
   override def createPostingCandidate(postingId: UUID, data: String): F[SRApplyApiResponse] = for {
