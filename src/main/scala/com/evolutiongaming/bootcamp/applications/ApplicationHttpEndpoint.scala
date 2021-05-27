@@ -1,13 +1,24 @@
 package com.evolutiongaming.bootcamp.applications
 
-import cats.Monad
-import cats.data.OptionT
-import cats.effect.Sync
+import cats.effect.{Clock, Sync}
 import cats.syntax.all._
-import com.evolutiongaming.bootcamp.applications.dto.ApplicationSubmitDto
+import com.evolutiongaming.bootcamp.applications.ApplicationError.{
+  ApplicationAlreadyExists,
+  ApplicationNotFound,
+  ApplicationSolutionAlreadyExists
+}
+import com.evolutiongaming.bootcamp.applications.dto.{ApplicationSubmitDto, CreateApplicationDto}
 import com.evolutiongaming.bootcamp.auth.Auth
+import com.evolutiongaming.bootcamp.courses.CourseError.CourseNotFound
 import com.evolutiongaming.bootcamp.courses.CourseService
-import com.evolutiongaming.bootcamp.shared.HttpCommon.{AuthEndpoint, AuthHandler, AuthService}
+import com.evolutiongaming.bootcamp.effects.GenUUID
+import com.evolutiongaming.bootcamp.shared.HttpCommon.{
+  AuthEndpoint,
+  AuthHandler,
+  AuthService,
+  OptionalOffsetMatcher,
+  OptionalPageSizeMatcher
+}
 import com.evolutiongaming.bootcamp.sr.dto.SRApplicationWebhookPayload
 import com.evolutiongaming.bootcamp.sr.{SRApplicationStatus, SRHttpClient}
 import org.http4s._
@@ -17,55 +28,80 @@ import org.http4s.util.CaseInsensitiveString
 import tsec.authentication.asAuthed
 import tsec.jwt.algorithms.JWTMacAlgo
 
-final class ApplicationHttpEndpoint[F[_]: Sync, Auth: JWTMacAlgo](
+final class ApplicationHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
   applicationService: ApplicationService[F],
   auth:               AuthHandler[F, Auth],
   srClient:           SRHttpClient[F],
   courseService:      CourseService[F],
 ) extends Http4sDsl[F] {
-  private def placeApplicationEndpoint: AuthEndpoint[F, Auth] = { case req @ POST -> Root asAuthed user =>
-    for {
-      application <- req.request
-        .as[Application]
-        .map(_.copy(userId = user.id))
-      savedApplication <- applicationService.placeApplication(application)
-      res              <- Ok(savedApplication)
-    } yield res
+  private def createApplicationEndpoint: AuthEndpoint[F, Auth] = { case req @ POST -> Root asAuthed _ =>
+    (for {
+      createApplicationDto <- req.request.as[CreateApplicationDto]
+      id                   <- GenUUID[F].random
+      time                 <- Clock[F].instantNow
+      application          <- Application.of(id, time, createApplicationDto).pure[F]
+      savedApplication     <- applicationService.placeApplication(application)
+      res                  <- Ok(savedApplication)
+    } yield res).handleErrorWith(applicationErrorInterceptor)
   }
 
-  private def submitApplicationSolutionEndpoint: AuthEndpoint[F, Auth] = {
+  private def submitUserApplicationSolutionEndpoint: AuthEndpoint[F, Auth] = {
     case req @ PATCH -> Root / UUIDVar(id) / "submit" asAuthed user =>
-      val action = for {
+      (for {
         applicationSubmitDto <- req.request.as[ApplicationSubmitDto]
         savedApplication <- applicationService.updateApplicationSolution(
           id,
           user.id,
           applicationSubmitDto.solutionMessage.some
         )
-      } yield savedApplication
+        res <- Accepted(savedApplication)
+      } yield res).handleErrorWith(applicationErrorInterceptor)
+  }
 
-      OptionT(action).foldF(BadRequest())(application => Accepted(application))
+  private def getUserApplicationEndpoint: AuthEndpoint[F, Auth] = { case GET -> Root / UUIDVar(id) asAuthed user =>
+    (for {
+      application <- applicationService.getUserApplication(id, user.id)
+      res         <- Ok(application)
+    } yield res).handleErrorWith(applicationErrorInterceptor)
   }
 
   private def getApplicationEndpoint: AuthEndpoint[F, Auth] = { case GET -> Root / UUIDVar(id) asAuthed _ =>
-    applicationService
-      .get(id)
-      .foldF(
-        _ => NotFound("The application was not found"),
-        application => Ok(application)
-      )
+    (for {
+      application <- applicationService.get(id)
+      res         <- Ok(application)
+    } yield res).handleErrorWith(applicationErrorInterceptor)
   }
 
   private def deleteApplicationEndpoint(): AuthEndpoint[F, Auth] = { case DELETE -> Root / UUIDVar(id) asAuthed _ =>
-    for {
+    (for {
       _   <- applicationService.delete(id)
       res <- Ok()
-    } yield res
+    } yield res).handleErrorWith(applicationErrorInterceptor)
+  }
+
+  private def listApplicationsEndpoint: AuthEndpoint[F, Auth] = {
+    case GET -> Root :? OptionalPageSizeMatcher(pageSize) :? OptionalOffsetMatcher(
+          offset,
+        ) asAuthed _ =>
+      for {
+        applications <- applicationService.list(pageSize.getOrElse(10), offset.getOrElse(0))
+        res          <- Ok(applications)
+      } yield res
+  }
+
+  private def listUserApplicationsEndpoint: AuthEndpoint[F, Auth] = {
+    case GET -> Root :? OptionalPageSizeMatcher(pageSize) :? OptionalOffsetMatcher(
+          offset,
+        ) asAuthed user =>
+      for {
+        applications <- applicationService.listByUserId(user.id, pageSize.getOrElse(10), offset.getOrElse(0))
+        res          <- Ok(applications)
+      } yield res
   }
 
   // https://dev.smartrecruiters.com/customer-api/live-docs/webhooks-subscriptions-api/#/subscriptions/subscriptions.activate
   private def hookApplicationEndpoint(): HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "hook" =>
-    val action = for {
+    val action = (for {
       applicationPayload <- req.as[SRApplicationWebhookPayload]
       candidateStatus    <- srClient.getCandidateStatus(applicationPayload.jobId, applicationPayload.candidateId)
       application <- applicationService.updateApplicationStatusBySR(
@@ -73,33 +109,50 @@ final class ApplicationHttpEndpoint[F[_]: Sync, Auth: JWTMacAlgo](
         candidateStatus.status
       )
       course <- courseService.getBySR(applicationPayload.jobId)
-      _ <- application.traverseTap {
-        case Application(_, _, _, _, _, _, _, SRApplicationStatus.IN_REVIEW) =>
-          srClient.sendCandidateEmail(applicationPayload.candidateId, "").void
-        case _ => Monad[F].unit
-      }
+      _ <- srClient
+        .sendCandidateEmail(applicationPayload.candidateId, course.taskMessage)
+        .whenA(application.status == SRApplicationStatus.IN_REVIEW)
       res <- Accepted()
-    } yield res
+    } yield res)
+      .recoverWith {
+        // We will receive events from the whole company's space so we should ignore irrelevant ones
+        case _: CourseNotFound      => Accepted()
+        case _: ApplicationNotFound => Accepted()
+      }
+      .handleErrorWith(applicationErrorInterceptor)
 
     req.headers
       .get(CaseInsensitiveString("X-Hook-Secret"))
       .fold(action)(header => Ok().map(_.withHeaders(header)))
   }
 
+  private val applicationErrorInterceptor: PartialFunction[Throwable, F[Response[F]]] = {
+    case e: ApplicationAlreadyExists         => Conflict(e.getMessage)
+    case e: ApplicationSolutionAlreadyExists => Conflict(e.getMessage)
+    case e: ApplicationNotFound              => NotFound(e.getMessage)
+    case e: Throwable                        => InternalServerError(e.getMessage)
+  }
+
   def endpoints: HttpRoutes[F] = {
+    val allRoles =
+      getUserApplicationEndpoint
+        .orElse(submitUserApplicationSolutionEndpoint)
+        .orElse(listUserApplicationsEndpoint)
+    val onlyAdmin =
+      listApplicationsEndpoint
+        .orElse(getApplicationEndpoint)
+        .orElse(createApplicationEndpoint)
+        .orElse(deleteApplicationEndpoint())
+
     val authEndpoints: AuthService[F, Auth] =
-      Auth.allRolesHandler(
-        placeApplicationEndpoint.orElse(getApplicationEndpoint).orElse(submitApplicationSolutionEndpoint),
-      )(
-        Auth.adminOnly(deleteApplicationEndpoint())
-      )
+      Auth.allRolesHandler(allRoles)(Auth.adminOnly(onlyAdmin))
 
     auth.liftService(authEndpoints) <+> hookApplicationEndpoint()
   }
 }
 
 object ApplicationHttpEndpoint {
-  def endpoints[F[_]: Sync, Auth: JWTMacAlgo](
+  def endpoints[F[_]: Sync: Clock, Auth: JWTMacAlgo](
     applicationService: ApplicationService[F],
     auth:               AuthHandler[F, Auth],
     srClient:           SRHttpClient[F],

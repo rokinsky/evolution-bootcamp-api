@@ -31,6 +31,9 @@ object ApplicationQuery extends LegacyInstantMetaInstance with Instances {
     FROM applications
   """.query
 
+  def selectByUserId(userId: UUID): Query0[Application] =
+    (selectAll.toFragment ++ fr"user_id = $userId").query
+
   def select(applicationId: UUID): Query0[Application] =
     (selectAll.toFragment ++ fr"WHERE id = $applicationId").query
 

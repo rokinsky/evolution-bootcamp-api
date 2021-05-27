@@ -9,11 +9,17 @@ trait ApplicationRepositoryAlgebra[F[_]] {
 
   def get(applicationId: UUID): F[Option[Application]]
 
+  def getUserApplication(applicationId: UUID, userId: UUID): F[Option[Application]]
+
   def getBySR(srId: UUID): F[Option[Application]]
 
-  def updateStatusBySR(srId: UUID, status: SRApplicationStatus): F[Option[Application]]
+  def updateStatusBySR(srId: UUID, status: SRApplicationStatus): F[Application]
 
-  def updateSolution(id: UUID, userId: UUID, solutionMessage: Option[String]): F[Option[Application]]
+  def updateSolution(id: UUID, userId: UUID, solutionMessage: Option[String]): F[Application]
 
-  def delete(applicationId: UUID): F[Option[Application]]
+  def delete(applicationId: UUID): F[Unit]
+
+  def list(pageSize: Int, offset: Int): F[List[Application]]
+
+  def listByUserId(userId: UUID, pageSize: Int, offset: Int): F[List[Application]]
 }

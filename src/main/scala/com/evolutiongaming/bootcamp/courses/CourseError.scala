@@ -9,6 +9,6 @@ object CourseError {
     override def getMessage: String = s"The course with Smart Recruiters Id ${course.srId} already exists"
   }
   final case class CourseNotFound(id: UUID) extends CourseError {
-    override def getMessage: String = s"The with id $id course was not found"
+    override def getMessage: String = s"The course with id $id was not found"
   }
 }

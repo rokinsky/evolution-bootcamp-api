@@ -1,6 +1,6 @@
 package com.evolutiongaming.bootcamp.applications
 
-import cats.effect.Sync
+import cats.effect.{Clock, Sync}
 import com.evolutiongaming.bootcamp.courses.CourseService
 import com.evolutiongaming.bootcamp.shared.HttpCommon.AuthHandler
 import com.evolutiongaming.bootcamp.sr.SRHttpClient
@@ -12,7 +12,7 @@ trait ApplicationModule[F[_]] {
 }
 
 object ApplicationModule {
-  def of[F[_]: Sync, Auth: JWTMacAlgo](
+  def of[F[_]: Sync: Clock, Auth: JWTMacAlgo](
     applicationService: ApplicationService[F],
     courseService:      CourseService[F],
     auth:               AuthHandler[F, Auth],
