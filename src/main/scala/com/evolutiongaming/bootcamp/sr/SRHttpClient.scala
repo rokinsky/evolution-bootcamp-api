@@ -6,91 +6,35 @@ import com.evolutiongaming.bootcamp.config.app.SRConfig
 import com.evolutiongaming.bootcamp.sr.dto.{
   SRApplicationStatusInfo,
   SRApplyApiResponse,
-  SRMessage,
   SRMessageDetails,
-  SRSubscription,
-  SRSubscriptionRequest
+  SRSubscription
 }
 import org.http4s._
-import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
 import org.http4s.client._
-import org.http4s.client.dsl.Http4sClientDsl
-import org.http4s.headers.`Content-Type`
 
 import java.util.UUID
 
-final class SRHttpClient[F[_]: Sync](client: Client[F], uri: Uri, token: String) extends Http4sClientDsl[F] {
-  // https://dev.smartrecruiters.com/customer-api/live-docs/application-api/#/Application%20API/getApplyConfigurationForPosting
-  def getPostingConfiguration(postingId: UUID): F[String] =
-    client.expect[String](
-      Method
-        .GET(
-          uri / "postings" / postingId.toString / "configuration",
-          Header("X-SmartToken", token),
-        )
-    )
+trait SRHttpClient[F[_]] {
+  def getPostingConfiguration(postingId: UUID): F[String]
 
-  // https://dev.smartrecruiters.com/customer-api/live-docs/application-api/#/Application%20API/createCandidate
-  def createPostingCandidate(postingId: UUID, data: String): F[SRApplyApiResponse] =
-    client.expect[SRApplyApiResponse](
-      Method
-        .POST(
-          data,
-          uri / "postings" / postingId.toString / "candidates",
-          Header("X-SmartToken", token),
-          `Content-Type`(MediaType.application.json),
-        )
-    )
+  def createPostingCandidate(postingId: UUID, data: String): F[SRApplyApiResponse]
 
-  // https://dev.smartrecruiters.com/customer-api/live-docs/message-api/#/messages/messages.shares.create
-  def sendCandidateEmail(candidateId: UUID, body: String): F[SRMessageDetails] =
-    // TODO: should be checked if it sends emails correctly, otherwise 3rd party service should be used like Amazon SES
-    client.expect[SRMessageDetails](
-      Method
-        .POST(
-          SRMessage(s"@[CANDIDATE:$candidateId] #[CANDIDATE:$candidateId] $body"),
-          uri / "messages" / "shares",
-          Header("X-SmartToken", token),
-          `Content-Type`(MediaType.application.json),
-        )
-    )
+  def sendCandidateEmail(candidateId: UUID, body: String): F[SRMessageDetails]
 
-  // https://dev.smartrecruiters.com/customer-api/live-docs/webhooks-subscriptions-api/#/subscriptions/subscriptions.create
-  def subscribeApplicationStatusWebhook(callbackUrl: String): F[SRSubscription] =
-    client.expect[SRSubscription](
-      Method
-        .POST(
-          SRSubscriptionRequest(callbackUrl, List(SREvent.`application.status.updated`)),
-          uri / "subscriptions",
-          Header("X-SmartToken", token),
-          `Content-Type`(MediaType.application.json),
-        )
-    )
+  def subscribeApplicationStatusWebhook(callbackUrl: String): F[SRSubscription]
 
-  // https://dev.smartrecruiters.com/customer-api/live-docs/webhooks-subscriptions-api/#/subscriptions/subscriptions.activate
-  def activateSubscription(subscriptionId: String): F[Unit] =
-    client.expect[Unit](
-      Method
-        .PUT(
-          (),
-          uri / "subscriptions" / subscriptionId / "activation",
-          Header("X-SmartToken", token),
-        )
-    )
+  def activateSubscription(subscriptionId: String): F[Unit]
 
-  // https://dev.smartrecruiters.com/customer-api/live-docs/application-api/#/Application%20API/getApplicationStatus
-  def getCandidateStatus(postingId: UUID, candidateId: UUID): F[SRApplicationStatusInfo] =
-    client.expect[SRApplicationStatusInfo](
-      Method
-        .GET(
-          uri / "postings" / postingId.toString / "candidates" / candidateId.toString / "status",
-          Header("X-SmartToken", token),
-        )
-    )
+  def getCandidateStatus(postingId: UUID, candidateId: UUID): F[SRApplicationStatusInfo]
 }
 
 object SRHttpClient {
   def of[F[_]: Sync](conf: SRConfig, client: Client[F]): F[SRHttpClient[F]] = for {
     uri <- Sync[F].fromEither(Uri.fromString(conf.apiUri))
-  } yield new SRHttpClient(client, uri, conf.apiKey)
+  } yield new SRHttpClientImpl(client, uri, conf.apiKey)
+
+  def mock[F[_]: Sync](conf: SRConfig, client: Client[F]): F[SRHttpClient[F]] = {
+    val client: SRHttpClient[F] = new SRHttpClientMock()
+    client.pure[F]
+  }
 }
