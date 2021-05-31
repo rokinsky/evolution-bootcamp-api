@@ -12,7 +12,7 @@ import com.evolutiongaming.bootcamp.applications.ApplicationError.{
 import com.evolutiongaming.bootcamp.shared.SqlCommon.paginate
 import com.evolutiongaming.bootcamp.sr.SRApplicationStatus
 import doobie._
-import doobie.implicits._
+import doobie.implicits.{toConnectionIOOps, toDoobieApplicativeErrorOps}
 import doobie.postgres.sqlstate.class23.UNIQUE_VIOLATION
 
 import java.util.UUID

@@ -1,16 +1,22 @@
 package com.evolutiongaming.bootcamp.applications
 
-import cats.MonadError
 import cats.data.OptionT
+import cats.effect.{Clock, Sync}
 import cats.implicits._
 import com.evolutiongaming.bootcamp.applications.ApplicationError.ApplicationNotFound
+import com.evolutiongaming.bootcamp.applications.dto.CreateApplicationDto
+import com.evolutiongaming.bootcamp.effects.GenUUID
 import com.evolutiongaming.bootcamp.sr.SRApplicationStatus
 
 import java.util.UUID
 
-final class ApplicationService[F[_]: MonadError[*[_], Throwable]](applicationRepo: ApplicationRepositoryAlgebra[F]) {
-  def placeApplication(application: Application): F[Application] =
-    applicationRepo.create(application)
+final class ApplicationService[F[_]: Sync: Clock](applicationRepo: ApplicationRepositoryAlgebra[F]) {
+  def create(createApplicationDto: CreateApplicationDto): F[Application] = for {
+    id               <- GenUUID[F].random
+    time             <- Clock[F].instantNow
+    application      <- Application.of(id, time, createApplicationDto).pure[F]
+    savedApplication <- applicationRepo.create(application)
+  } yield savedApplication
 
   def get(id: UUID): F[Application] =
     OptionT(applicationRepo.get(id)).cataF(ApplicationNotFound(id).raiseError[F, Application], _.pure[F])
@@ -39,7 +45,7 @@ final class ApplicationService[F[_]: MonadError[*[_], Throwable]](applicationRep
 }
 
 object ApplicationService {
-  def apply[F[_]: MonadError[*[_], Throwable]](
+  def apply[F[_]: Sync: Clock](
     applicationRepo: ApplicationRepositoryAlgebra[F]
   ): ApplicationService[F] =
     new ApplicationService(applicationRepo)

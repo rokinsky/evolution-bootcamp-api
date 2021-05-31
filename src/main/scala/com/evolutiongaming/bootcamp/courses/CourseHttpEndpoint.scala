@@ -3,7 +3,8 @@ package com.evolutiongaming.bootcamp.courses
 import cats.effect.{Clock, Sync}
 import cats.syntax.all._
 import com.evolutiongaming.bootcamp.applications.ApplicationError.ApplicationAlreadyExists
-import com.evolutiongaming.bootcamp.applications.{Application, ApplicationService}
+import com.evolutiongaming.bootcamp.applications.ApplicationService
+import com.evolutiongaming.bootcamp.applications.dto.CreateApplicationDto
 import com.evolutiongaming.bootcamp.auth.Auth
 import com.evolutiongaming.bootcamp.courses.CourseError.{CourseAlreadyExists, CourseNotFound, CourseRegistrationClosed}
 import com.evolutiongaming.bootcamp.courses.dto.{CreateCourseDto, UpdateCourseDto}
@@ -44,12 +45,8 @@ final class CourseHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
         data          <- req.request.as[Json]
         course        <- courseService.getEnrolling(id)
         applyResponse <- srClient.createPostingCandidate(course.srId, data)
-        id            <- GenUUID[F].random
-        time          <- Clock[F].instantNow
-        application <- applicationService.placeApplication(
-          Application(id, user.id, course.id, applyResponse.id, None, time)
-        )
-        res <- Accepted(application)
+        application   <- applicationService.create(CreateApplicationDto(user.id, course.id, applyResponse.id))
+        res           <- Accepted(application)
       } yield res)
         .recoverWith { case e: ApplicationAlreadyExists => Conflict(e.getMessage) }
         .handleErrorWith(courseErrorInterceptor)

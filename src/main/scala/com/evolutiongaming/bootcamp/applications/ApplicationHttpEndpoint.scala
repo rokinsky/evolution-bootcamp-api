@@ -11,16 +11,8 @@ import com.evolutiongaming.bootcamp.applications.ApplicationError.{
 import com.evolutiongaming.bootcamp.applications.dto.{ApplicationSubmitDto, CreateApplicationDto, UpdateApplicationDto}
 import com.evolutiongaming.bootcamp.auth.Auth
 import com.evolutiongaming.bootcamp.courses.CourseError.CourseNotFound
-import com.evolutiongaming.bootcamp.courses.dto.UpdateCourseDto
-import com.evolutiongaming.bootcamp.courses.{Course, CourseService}
-import com.evolutiongaming.bootcamp.effects.GenUUID
-import com.evolutiongaming.bootcamp.shared.HttpCommon.{
-  AuthEndpoint,
-  AuthHandler,
-  AuthService,
-  OptionalOffsetMatcher,
-  OptionalPageSizeMatcher
-}
+import com.evolutiongaming.bootcamp.courses.CourseService
+import com.evolutiongaming.bootcamp.shared.HttpCommon._
 import com.evolutiongaming.bootcamp.sr.dto.SRApplicationWebhookPayload
 import com.evolutiongaming.bootcamp.sr.{SRApplicationStatus, SRHttpClient}
 import org.http4s._
@@ -39,10 +31,7 @@ final class ApplicationHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
   private def createApplicationEndpoint: AuthEndpoint[F, Auth] = { case req @ POST -> Root asAuthed _ =>
     (for {
       createApplicationDto <- req.request.as[CreateApplicationDto]
-      id                   <- GenUUID[F].random
-      time                 <- Clock[F].instantNow
-      application          <- Application.of(id, time, createApplicationDto).pure[F]
-      savedApplication     <- applicationService.placeApplication(application)
+      savedApplication     <- applicationService.create(createApplicationDto)
       res                  <- Ok(savedApplication)
     } yield res).handleErrorWith(applicationErrorInterceptor)
   }
