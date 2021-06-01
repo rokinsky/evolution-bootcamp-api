@@ -1,10 +1,12 @@
+CREATE TYPE ROLE AS ENUM ('Student', 'Admin');
+
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY,
     firstname VARCHAR NOT NULL,
     lastname VARCHAR NOT NULL,
     email VARCHAR NOT NULL UNIQUE,
     hash VARCHAR NOT NULL,
-    role VARCHAR NOT NULL DEFAULT '"Student"'
+    role ROLE NOT NULL DEFAULT 'Student'
 );
 
 CREATE TABLE IF NOT EXISTS auth (
