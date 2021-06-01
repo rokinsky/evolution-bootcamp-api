@@ -33,7 +33,7 @@ final case class AuthService[F[_]: Sync, A, Auth: JWTMacAlgo](
   def signupUser(signupDto: SignupDto): F[AuthPayload[Auth]] = for {
     hash        <- cryptService.hashpw(signupDto.password)
     id          <- GenUUID[F].random
-    user        <- signupDto.asUser(id, hash).pure[F]
+    user        <- signupDto.asStudent(id, hash).pure[F]
     createdUser <- userService.createUser(user)
     token       <- authenticator.create(user.id)
   } yield AuthPayload(createdUser, token)

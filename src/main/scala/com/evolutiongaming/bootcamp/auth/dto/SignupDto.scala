@@ -13,7 +13,7 @@ final case class SignupDto(
   email:     String,
   password:  String,
 ) {
-  def asUser[A](id: UUID, hashedPassword: PasswordHash[A]): User = User(
+  def asStudent[A](id: UUID, hashedPassword: PasswordHash[A]): User = User(
     id,
     firstName,
     lastName,
