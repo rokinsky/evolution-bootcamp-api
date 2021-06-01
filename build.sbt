@@ -8,9 +8,14 @@ scalaVersion := "2.13.6"
 scalacOptions ++= Seq(
   "-deprecation",
   "-feature",
-  "-Ymacro-annotations",
   "-Xfatal-warnings",
-  "-Xsource:3"
+)
+
+scalacOptions ++= (
+  CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((2, 13)) => Seq("-Xsource:3", "-Ymacro-annotations")
+    case _             => Seq("-Ykind-projector", "-source:3.0-migration", "-rewrite", "-indent", "-Xignore-scala2-macros")
+  }
 )
 
 val http4sVersion          = "0.21.24"
@@ -48,7 +53,7 @@ libraryDependencies ++= Seq(
   "io.circe"           %% "circe-generic-extras"  % circeVersion cross CrossVersion.for3Use2_13,
   "io.circe"           %% "circe-optics"          % circeVersion cross CrossVersion.for3Use2_13,
   "io.circe"           %% "circe-parser"          % circeVersion,
-  "io.circe"           %% "circe-literal"         % circeVersion cross CrossVersion.for3Use2_13,
+  "io.circe"           %% "circe-literal"         % circeVersion cross CrossVersion.for3Use2_13, // scala 2 macro
   "com.beachape"       %% "enumeratum-circe"      % enumeratumCirceVersion cross CrossVersion.for3Use2_13,
   "org.tpolecat"       %% "doobie-core"           % doobieVersion,
   "org.tpolecat"       %% "doobie-postgres"       % doobieVersion,
@@ -63,6 +68,11 @@ libraryDependencies ++= Seq(
   "io.github.jmcardon" %% "tsec-http4s"           % tsecVersion cross CrossVersion.for3Use2_13,
 )
 
-addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full)
+libraryDependencies ++= (
+  CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((2, 13)) => Seq("org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full)
+    case _             => Seq()
+  }
+)
 
 run / fork := true
