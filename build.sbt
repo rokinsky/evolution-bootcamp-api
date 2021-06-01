@@ -10,7 +10,6 @@ scalacOptions ++= Seq(
   "-feature",
   "-Xfatal-warnings",
   "-explaintypes",
-  "-Wunused"
 )
 
 scalacOptions ++= (
