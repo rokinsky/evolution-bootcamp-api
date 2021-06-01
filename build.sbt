@@ -9,6 +9,8 @@ scalacOptions ++= Seq(
   "-deprecation",
   "-feature",
   "-Xfatal-warnings",
+  "-explaintypes",
+  "-Wunused"
 )
 
 scalacOptions ++= (
@@ -70,8 +72,9 @@ libraryDependencies ++= Seq(
 
 libraryDependencies ++= (
   CrossVersion.partialVersion(scalaVersion.value) match {
-    case Some((2, 13)) => Seq("org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full)
-    case _             => Seq()
+    case Some((2, 13)) =>
+      Seq(compilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full))
+    case _ => Seq()
   }
 )
 

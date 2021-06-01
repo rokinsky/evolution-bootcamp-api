@@ -1,6 +1,6 @@
 package com.evolutiongaming.bootcamp.applications
 
-import cats.effect.{Clock, Sync}
+import cats.effect.Sync
 import cats.syntax.all._
 import com.evolutiongaming.bootcamp.applications.ApplicationError.{
   ApplicationAlreadyExists,
@@ -22,7 +22,7 @@ import org.http4s.util.CaseInsensitiveString
 import tsec.authentication.asAuthed
 import tsec.jwt.algorithms.JWTMacAlgo
 
-final class ApplicationHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
+final class ApplicationHttpEndpoint[F[_]: Sync, Auth: JWTMacAlgo](
   applicationService: ApplicationService[F],
   auth:               AuthHandler[F, Auth],
   srClient:           SRHttpClient[F],
@@ -157,7 +157,7 @@ final class ApplicationHttpEndpoint[F[_]: Sync: Clock, Auth: JWTMacAlgo](
 }
 
 object ApplicationHttpEndpoint {
-  def endpoints[F[_]: Sync: Clock, Auth: JWTMacAlgo](
+  def endpoints[F[_]: Sync, Auth: JWTMacAlgo](
     applicationService: ApplicationService[F],
     auth:               AuthHandler[F, Auth],
     srClient:           SRHttpClient[F],
