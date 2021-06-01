@@ -1,6 +1,5 @@
 package com.evolutiongaming.bootcamp
 
-import org.scalacheck.Arbitrary._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers._
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
