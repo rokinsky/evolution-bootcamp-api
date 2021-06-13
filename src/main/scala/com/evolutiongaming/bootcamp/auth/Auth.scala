@@ -1,6 +1,5 @@
 package com.evolutiongaming.bootcamp.auth
 
-import cats.MonadError
 import cats.effect._
 import com.evolutiongaming.bootcamp.users.{Role, User}
 import org.http4s.Response
@@ -35,12 +34,12 @@ object Auth {
       signingKey     = key,
     )
 
-  def allRoles[F[_]: MonadError[*[_], Throwable], Auth](
+  def allRoles[F[_]: MonadThrow, Auth](
     pf: PartialFunction[SecuredRequest[F, User, AugmentedJWT[Auth, UUID]], F[Response[F]]],
   ): TSecAuthService[User, AugmentedJWT[Auth, UUID], F] =
     TSecAuthService.withAuthorization(BasicRBAC.all[F, Role, User, AugmentedJWT[Auth, UUID]])(pf)
 
-  def allRolesHandler[F[_]: MonadError[*[_], Throwable], Auth](
+  def allRolesHandler[F[_]: MonadThrow, Auth](
     pf: PartialFunction[SecuredRequest[F, User, AugmentedJWT[Auth, UUID]], F[Response[F]]],
   )(
     onNotAuthorized: TSecAuthService[User, AugmentedJWT[Auth, UUID], F],
@@ -50,7 +49,7 @@ object Auth {
       onNotAuthorized.run,
     )
 
-  def adminOnly[F[_]: MonadError[*[_], Throwable], Auth](
+  def adminOnly[F[_]: MonadThrow, Auth](
     pf: PartialFunction[SecuredRequest[F, User, AugmentedJWT[Auth, UUID]], F[Response[F]]],
   ): TSecAuthService[User, AugmentedJWT[Auth, UUID], F] =
     TSecAuthService.withAuthorization(BasicRBAC[F, Role, User, AugmentedJWT[Auth, UUID]](Role.Admin))(pf)

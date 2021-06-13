@@ -1,7 +1,7 @@
 package com.evolutiongaming.bootcamp.courses
 
 import cats.data._
-import cats.effect.Bracket
+import cats.effect.BracketThrow
 import cats.syntax.all._
 import com.evolutiongaming.bootcamp.courses.CourseError.{CourseAlreadyExists, CourseNotFound}
 import com.evolutiongaming.bootcamp.shared.SqlCommon.paginate
@@ -11,8 +11,7 @@ import doobie.postgres.sqlstate.class23.UNIQUE_VIOLATION
 
 import java.util.UUID
 
-final class CourseDoobieRepository[F[_]: Bracket[*[_], Throwable]](val xa: Transactor[F])
-  extends CourseRepositoryAlgebra[F] {
+final class CourseDoobieRepository[F[_]: BracketThrow](val xa: Transactor[F]) extends CourseRepositoryAlgebra[F] {
   import CourseQuery._
 
   def create(course: Course): F[Course] =
@@ -45,6 +44,6 @@ final class CourseDoobieRepository[F[_]: Bracket[*[_], Throwable]](val xa: Trans
 }
 
 object CourseDoobieRepository {
-  def apply[F[_]: Bracket[*[_], Throwable]](xa: Transactor[F]): CourseDoobieRepository[F] =
+  def apply[F[_]: BracketThrow](xa: Transactor[F]): CourseDoobieRepository[F] =
     new CourseDoobieRepository(xa)
 }

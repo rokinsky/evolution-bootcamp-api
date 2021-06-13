@@ -1,7 +1,7 @@
 package com.evolutiongaming.bootcamp.applications
 
 import cats.data.OptionT
-import cats.effect.Bracket
+import cats.effect.BracketThrow
 import cats.syntax.all._
 import com.evolutiongaming.bootcamp.applications.ApplicationError.{
   ApplicationAlreadyExists,
@@ -17,8 +17,7 @@ import doobie.postgres.sqlstate.class23.UNIQUE_VIOLATION
 
 import java.util.UUID
 
-final class ApplicationDoobieRepository[F[_]: Bracket[*[_], Throwable]](xa: Transactor[F])
-  extends ApplicationRepositoryAlgebra[F] {
+final class ApplicationDoobieRepository[F[_]: BracketThrow](xa: Transactor[F]) extends ApplicationRepositoryAlgebra[F] {
   import ApplicationQuery._
 
   override def create(application: Application): F[Application] =
@@ -80,7 +79,7 @@ final class ApplicationDoobieRepository[F[_]: Bracket[*[_], Throwable]](xa: Tran
 }
 
 object ApplicationDoobieRepository {
-  def apply[F[_]: Bracket[*[_], Throwable]](
+  def apply[F[_]: BracketThrow](
     xa: Transactor[F],
   ): ApplicationDoobieRepository[F] =
     new ApplicationDoobieRepository(xa)

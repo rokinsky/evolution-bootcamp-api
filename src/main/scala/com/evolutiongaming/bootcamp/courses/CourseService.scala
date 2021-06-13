@@ -1,6 +1,6 @@
 package com.evolutiongaming.bootcamp.courses
 
-import cats.MonadError
+import cats.MonadThrow
 import cats.data._
 import cats.effect.Clock
 import cats.syntax.all._
@@ -8,7 +8,7 @@ import com.evolutiongaming.bootcamp.courses.CourseError.{CourseNotFound, CourseR
 
 import java.util.UUID
 
-final class CourseService[F[_]: MonadError[*[_], Throwable]: Clock](
+final class CourseService[F[_]: MonadThrow: Clock](
   repository: CourseRepositoryAlgebra[F],
 ) {
   def create(course: Course): F[Course] =
@@ -42,7 +42,7 @@ final class CourseService[F[_]: MonadError[*[_], Throwable]: Clock](
 }
 
 object CourseService {
-  def apply[F[_]: MonadError[*[_], Throwable]: Clock](
+  def apply[F[_]: MonadThrow: Clock](
     repository: CourseRepositoryAlgebra[F],
   ): CourseService[F] =
     new CourseService[F](repository)

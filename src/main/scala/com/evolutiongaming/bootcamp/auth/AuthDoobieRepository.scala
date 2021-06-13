@@ -1,7 +1,7 @@
 package com.evolutiongaming.bootcamp.auth
 
 import cats.data._
-import cats.effect.Bracket
+import cats.effect.BracketThrow
 import cats.syntax.all._
 import doobie._
 import doobie.implicits._
@@ -14,7 +14,7 @@ import tsec.mac.jca.{MacErrorM, MacSigningKey}
 import java.util.UUID
 
 final class AuthDoobieRepository[
-  F[_]: Bracket[*[_], Throwable],
+  F[_]: BracketThrow,
   A:    Lambda[a => JWSSerializer[JWSMacHeader[a]]]: JWSMacCV[MacErrorM, *]
 ](
   key: MacSigningKey[A],
@@ -39,7 +39,7 @@ final class AuthDoobieRepository[
 }
 
 object AuthDoobieRepository {
-  def apply[F[_]: Bracket[*[_], Throwable], A: Lambda[a => JWSSerializer[JWSMacHeader[a]]]: JWSMacCV[MacErrorM, *]](
+  def apply[F[_]: BracketThrow, A: Lambda[a => JWSSerializer[JWSMacHeader[a]]]: JWSMacCV[MacErrorM, *]](
     key: MacSigningKey[A],
     xa:  Transactor[F]
   ): AuthDoobieRepository[F, A] =

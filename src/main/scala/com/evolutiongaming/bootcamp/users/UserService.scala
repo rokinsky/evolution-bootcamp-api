@@ -1,12 +1,12 @@
 package com.evolutiongaming.bootcamp.users
 
-import cats.MonadError
+import cats.MonadThrow
 import cats.implicits._
 import com.evolutiongaming.bootcamp.users.UserError.UserNotFound
 
 import java.util.UUID
 
-final class UserService[F[_]: MonadError[*[_], Throwable]](
+final class UserService[F[_]: MonadThrow](
   userRepo: UserRepositoryAlgebra[F],
 ) {
   def createUser(user: User): F[User] =
@@ -29,7 +29,7 @@ final class UserService[F[_]: MonadError[*[_], Throwable]](
 }
 
 object UserService {
-  def apply[F[_]: MonadError[*[_], Throwable]](
+  def apply[F[_]: MonadThrow](
     repository: UserRepositoryAlgebra[F],
   ): UserService[F] =
     new UserService[F](repository)
